@@ -151,6 +151,7 @@ test("quoted posts expose author attribution for Instant View", () => {
   });
 
   const html = renderTweet(normalizeTweet(tweet, ORIGIN));
+  assert.match(html, /<hr class="quote-separator">/);
   assert.match(html, /class="quote-author"/);
   assert.match(html, /Quoted Author/);
   assert.match(html, /@quoted/);

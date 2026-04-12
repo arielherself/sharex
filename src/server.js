@@ -930,7 +930,7 @@ function renderTweet(tweet, options = {}) {
         ${renderArticle(tweet.article)}
         ${renderTranslation(tweet.translation)}
         ${renderCommunityNote(tweet.communityNote)}
-        ${tweet.quote ? renderTweet(tweet.quote, { quote: true }) : ""}
+        ${tweet.quote ? `<hr class="quote-separator">${renderTweet(tweet.quote, { quote: true })}` : ""}
 
         <footer class="post-footer">
           ${dateLabel ? `<time datetime="${escapeAttr(tweet.createdAt)}">${escapeHtml(dateLabel)} UTC</time>` : ""}

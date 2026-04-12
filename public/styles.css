@@ -78,6 +78,12 @@ a {
   color: var(--ink);
 }
 
+.quote-separator {
+  margin: 22px 0 0;
+  border: 0;
+  border-top: 1px solid var(--line);
+}
+
 .post-header {
   display: flex;
   align-items: center;
