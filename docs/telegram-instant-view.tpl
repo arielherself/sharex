@@ -18,7 +18,6 @@ body: (//article[@data-iv-post]//section[has-class("iv-body")])[1]
 # Poll bars are browser UI; the option labels and percentages stay in text.
 @remove: $body//progress
 
-# Engagement counters and profile chrome are intentionally excluded from body,
-# but quoted post author attribution is kept through .quote-author.
-@remove: $body//*[has-class("post-footer")]
+# Profile chrome is intentionally excluded from body, but quoted post author
+# attribution and engagement counters are kept.
 @remove: $body//*[has-class("post-header")]

@@ -880,21 +880,21 @@ function renderTweet(tweet, options = {}) {
         ${renderTranslation(tweet.translation)}
         ${renderCommunityNote(tweet.communityNote)}
         ${tweet.quote ? renderTweet(tweet.quote, { quote: true }) : ""}
-      </section>
 
-      <footer class="post-footer">
-        ${dateLabel ? `<time datetime="${escapeAttr(tweet.createdAt)}">${escapeHtml(dateLabel)} UTC</time>` : ""}
-        <div class="counts" aria-label="Post engagement">
-          <span>${formatCount(tweet.counts.replies)} replies</span>
-          <span>${formatCount(tweet.counts.retweets)} reposts</span>
-          <span>${formatCount(tweet.counts.likes)} likes</span>
-          ${
-            typeof tweet.counts.views === "number"
-              ? `<span>${formatCount(tweet.counts.views)} views</span>`
-              : ""
-          }
-        </div>
-      </footer>
+        <footer class="post-footer">
+          ${dateLabel ? `<time datetime="${escapeAttr(tweet.createdAt)}">${escapeHtml(dateLabel)} UTC</time>` : ""}
+          <div class="counts" aria-label="Post engagement">
+            <span>${formatCount(tweet.counts.replies)} replies</span>
+            <span>${formatCount(tweet.counts.retweets)} reposts</span>
+            <span>${formatCount(tweet.counts.likes)} likes</span>
+            ${
+              typeof tweet.counts.views === "number"
+                ? `<span>${formatCount(tweet.counts.views)} views</span>`
+                : ""
+            }
+          </div>
+        </footer>
+      </section>
     </article>`;
 }
 
