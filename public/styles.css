@@ -42,6 +42,17 @@ a {
   padding: 40px 0;
 }
 
+.site-header {
+  margin: 0 0 16px;
+}
+
+.site-title {
+  color: var(--ink);
+  font-size: 1.35rem;
+  font-weight: 900;
+  text-decoration: none;
+}
+
 .home {
   min-height: 100vh;
   display: grid;

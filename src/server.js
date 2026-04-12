@@ -1126,6 +1126,9 @@ function renderPage(tweet, origin, pathValue) {
 </head>
 <body>
   <main class="page-shell">
+    <header class="site-header" aria-label="Site">
+      <a class="site-title" href="/">${escapeHtml(SITE_NAME)}</a>
+    </header>
     ${renderTweet(normalized, { title })}
   </main>
   <script src="${escapeAttr(scriptHref())}" defer></script>

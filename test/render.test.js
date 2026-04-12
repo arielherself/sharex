@@ -79,6 +79,8 @@ test("post pages load the photo overlay script", async () => {
     assert.equal(res.statusCode, 200);
     assert.match(res.body, /href="\/assets\/styles\.css\?v=[a-f0-9]{12}"/);
     assert.match(res.body, /src="\/assets\/app\.js\?v=[a-f0-9]{12}" defer/);
+    assert.match(res.body, /<a class="site-title" href="\/">ShareX<\/a>/);
+    assert.ok(res.body.indexOf("site-title") < res.body.indexOf("data-iv-post"));
   } finally {
     globalThis.fetch = originalFetch;
   }
