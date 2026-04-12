@@ -221,8 +221,10 @@ test("photo grid css preserves full image aspect ratios", () => {
   assert.match(styles, /\.photo-overlay \{/);
   assert.match(styles, /\.photo-overlay \{[^}]*overflow: hidden;/s);
   assert.match(styles, /\.photo-overlay \{[^}]*padding: 72px 20px 24px;/s);
-  assert.match(styles, /\.photo-overlay-image \{[^}]*width: min\(100%, calc\(100vw - 40px\)\);/s);
-  assert.match(styles, /\.photo-overlay-image \{[^}]*height: min\(100%, calc\(100vh - 96px\)\);/s);
+  assert.match(styles, /\.photo-overlay-image \{[^}]*max-width: calc\(100vw - 40px\);/s);
+  assert.match(styles, /\.photo-overlay-image \{[^}]*max-height: calc\(100vh - 96px\);/s);
+  assert.match(styles, /\.photo-overlay-image \{[^}]*width: auto;/s);
+  assert.match(styles, /\.photo-overlay-image \{[^}]*height: auto;/s);
   assert.match(styles, /\.photo-overlay-image \{[^}]*object-fit: contain;/s);
   assert.match(script, /closest\("a\.photo-link"\)/);
   assert.match(script, /className = "photo-overlay"/);
