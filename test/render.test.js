@@ -83,12 +83,15 @@ test("renders poll, translation, community note, external media, and ordered med
   assert.match(html, /external-media/);
   assert.match(html, /data-iv-post/);
   assert.match(html, /class="iv-body"/);
+  assert.match(html, /original post/);
+  assert.match(html, /https:\/\/fxtwitter\.com\/tester\/status\/2040000000000000000/);
   assert.match(html, /replies/);
   assert.match(html, /reposts/);
   assert.match(html, /likes/);
   assert.match(html, /views/);
   assert.match(html, /https:\/\/media\.example\.test\/video\.mp4/);
-  assert.doesNotMatch(html, /pbs\.twimg\.com|video\.twimg\.com|twitter\.com|x\.com/);
+  assert.doesNotMatch(html, /pbs\.twimg\.com|video\.twimg\.com/);
+  assert.doesNotMatch(html, /https:\/\/(?:[^/]+\.)?x\.com|https:\/\/(?:[^/]+\.)?twitter\.com/);
 });
 
 test("does not expose blocked external media URLs", () => {

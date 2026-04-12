@@ -275,6 +275,7 @@ function normalizeTweet(tweet, origin, absoluteMedia = false, depth = 0) {
       screenName: tweet.author?.screen_name || "",
       avatar: mediaUrl(origin, tweet.author?.avatar_url || "", absoluteMedia),
     },
+    originalUrl: buildOriginalPostUrl(tweet),
     createdAt: tweet.created_at || "",
     createdTimestamp: tweet.created_timestamp || null,
     counts: {
@@ -331,6 +332,15 @@ function normalizeTweet(tweet, origin, absoluteMedia = false, depth = 0) {
         ? normalizeTweet(tweet.quote, origin, absoluteMedia, depth + 1)
         : null,
   };
+}
+
+function buildOriginalPostUrl(tweet) {
+  const screenName = tweet.author?.screen_name || tweet.author?.screenName || "";
+  const id = tweet.id || "";
+  if (!screenName || !id) {
+    return "";
+  }
+  return `https://fxtwitter.com/${encodeURIComponent(screenName)}/status/${encodeURIComponent(id)}`;
 }
 
 function normalizeCommunityNote(note) {
@@ -907,6 +917,11 @@ function renderTweet(tweet, options = {}) {
       </header>
 
       <section class="iv-body">
+        ${
+          tweet.originalUrl
+            ? `<p class="original-link"><a href="${escapeAttr(tweet.originalUrl)}" rel="nofollow noopener noreferrer" target="_blank">original post</a></p>`
+            : ""
+        }
         ${
           tweet.text
             ? `<p class="post-text">${renderText(tweet.text)}</p>`
