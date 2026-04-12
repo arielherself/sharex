@@ -11,6 +11,7 @@ const SITE_NAME = process.env.SITE_NAME || "ShareX";
 const APP_USER_AGENT =
   process.env.APP_USER_AGENT ||
   "ShareXPostPages/0.1 (+https://example.invalid; contact required)";
+const MAX_THREAD_DEPTH = 12;
 const TOKEN_SECRET =
   process.env.MEDIA_TOKEN_SECRET ||
   "development-only-secret-change-MEDIA_TOKEN_SECRET";
@@ -238,6 +239,72 @@ async function fetchTweet(screenName, statusId) {
   }
 
   return payload.tweet;
+}
+
+async function fetchThread(screenName, statusId) {
+  const tweet = await fetchTweet(screenName, statusId);
+  const ancestors = [];
+  const seen = new Set([String(tweet.id || statusId)]);
+  let current = tweet;
+
+  for (let depth = 0; depth < MAX_THREAD_DEPTH; depth += 1) {
+    const embeddedParent = getEmbeddedReplyParent(current);
+    const parentId = getReplyParentId(current);
+    if (!parentId || seen.has(parentId)) {
+      break;
+    }
+    seen.add(parentId);
+
+    if (embeddedParent) {
+      ancestors.unshift(embeddedParent);
+      current = embeddedParent;
+      continue;
+    }
+
+    try {
+      const parent = await fetchTweet(
+        getReplyParentScreenName(current) || "i",
+        parentId
+      );
+      ancestors.unshift(parent);
+      current = parent;
+    } catch {
+      break;
+    }
+  }
+
+  return { tweet, ancestors };
+}
+
+function getEmbeddedReplyParent(tweet) {
+  return tweet?.replying_to_status &&
+    typeof tweet.replying_to_status === "object"
+    ? tweet.replying_to_status
+    : null;
+}
+
+function getReplyParentId(tweet) {
+  const parent = tweet?.replying_to_status;
+  if (!parent) {
+    return "";
+  }
+  if (typeof parent === "string" || typeof parent === "number") {
+    return String(parent);
+  }
+  return String(parent.id || parent.status_id || "");
+}
+
+function getReplyParentScreenName(tweet) {
+  const replyTarget = tweet?.replying_to;
+  if (!replyTarget) {
+    return "";
+  }
+  if (typeof replyTarget === "string") {
+    return replyTarget.replace(/^@/, "");
+  }
+  return String(
+    replyTarget.screen_name || replyTarget.screenName || replyTarget.username || ""
+  ).replace(/^@/, "");
 }
 
 function normalizeTweet(tweet, origin, absoluteMedia = false, depth = 0) {
@@ -878,6 +945,8 @@ function renderArticleInlineText(text, block, article) {
 
 function renderTweet(tweet, options = {}) {
   const isQuote = Boolean(options.quote);
+  const isThreadPost = Boolean(options.thread);
+  const exposeInstantView = !isQuote && !isThreadPost;
   const pageTitle = options.title || `${tweet.author.name} (@${tweet.author.screenName})`;
   const avatar = tweet.author.avatar
     ? `<img class="avatar" src="${escapeAttr(tweet.author.avatar)}" alt="" loading="lazy" decoding="async">`
@@ -888,8 +957,8 @@ function renderTweet(tweet, options = {}) {
 
   return `
     <article
-      class="${isQuote ? "quote-post" : "post-card"}"
-      ${isQuote ? "" : `data-iv-post data-iv-title="${escapeAttr(pageTitle)}" data-iv-author="${escapeAttr(tweet.author.name)}" data-iv-published-timestamp="${escapeAttr(tweet.createdTimestamp || "")}"`}
+      class="${isQuote ? "quote-post" : isThreadPost ? "post-card thread-post" : "post-card"}"
+      ${exposeInstantView ? `data-iv-post data-iv-title="${escapeAttr(pageTitle)}" data-iv-author="${escapeAttr(tweet.author.name)}" data-iv-published-timestamp="${escapeAttr(tweet.createdTimestamp || "")}"` : ""}
     >
       ${
         isQuote
@@ -940,6 +1009,18 @@ function renderTweet(tweet, options = {}) {
         </footer>
       </section>
     </article>`;
+}
+
+function renderThread(ancestors, tweet, title) {
+  if (!ancestors.length) {
+    return renderTweet(tweet, { title });
+  }
+
+  return `
+    <section class="thread" aria-label="Thread">
+      ${ancestors.map((ancestor) => renderTweet(ancestor, { thread: true })).join("")}
+      ${renderTweet(tweet, { title })}
+    </section>`;
 }
 
 function getPageTitle(tweet) {
@@ -1113,7 +1194,10 @@ function firstAvailableVideoSource(tweet) {
   };
 }
 
-function renderPage(tweet, origin, pathValue) {
+function renderPage(tweet, origin, pathValue, ancestors = []) {
+  const normalizedAncestors = ancestors.map((ancestor) =>
+    normalizeTweet(ancestor, origin, false)
+  );
   const normalized = normalizeTweet(tweet, origin, false);
   const title = getPageTitle(tweet);
   return `<!doctype html>
@@ -1129,7 +1213,7 @@ function renderPage(tweet, origin, pathValue) {
     <header class="site-header" aria-label="Site">
       <a class="site-title" href="/">${escapeHtml(SITE_NAME)}</a>
     </header>
-    ${renderTweet(normalized, { title })}
+    ${renderThread(normalizedAncestors, normalized, title)}
   </main>
   <script src="${escapeAttr(scriptHref())}" defer></script>
 </body>
@@ -1357,8 +1441,11 @@ async function handleRequest(req, res) {
     throw new HttpError(404, "Not found");
   }
 
-  const tweet = await fetchTweet(status.screenName, status.statusId);
-  return sendHtml(res, 200, renderPage(tweet, origin, pathname));
+  const { tweet, ancestors } = await fetchThread(
+    status.screenName,
+    status.statusId
+  );
+  return sendHtml(res, 200, renderPage(tweet, origin, pathname, ancestors));
 }
 
 function appHandler(req, res) {

@@ -86,6 +86,64 @@ test("post pages load the photo overlay script", async () => {
   }
 });
 
+test("reply pages render fetched parent chain before the selected post", async () => {
+  const originalFetch = globalThis.fetch;
+  const tweets = {
+    root: baseTweet({
+      id: "2040000000000000001",
+      text: "root post",
+      author: {
+        name: "Root Author",
+        screen_name: "rooter",
+        avatar_url: "https://pbs.twimg.com/profile_images/root.jpg",
+      },
+    }),
+    parent: baseTweet({
+      id: "2040000000000000002",
+      text: "parent reply",
+      author: {
+        name: "Parent Author",
+        screen_name: "parenter",
+        avatar_url: "https://pbs.twimg.com/profile_images/parent.jpg",
+      },
+      replying_to: "rooter",
+      replying_to_status: "2040000000000000001",
+    }),
+    target: baseTweet({
+      id: "2040000000000000003",
+      text: "selected reply",
+      author: {
+        name: "Target Author",
+        screen_name: "targeter",
+        avatar_url: "https://pbs.twimg.com/profile_images/target.jpg",
+      },
+      replying_to: "parenter",
+      replying_to_status: "2040000000000000002",
+    }),
+  };
+
+  globalThis.fetch = async (url) => {
+    const statusId = new URL(url).pathname.split("/").at(-1);
+    const tweet = Object.values(tweets).find((item) => item.id === statusId);
+    return new Response(JSON.stringify({ code: 200, tweet }), {
+      status: tweet ? 200 : 404,
+      headers: { "content-type": "application/json" },
+    });
+  };
+
+  try {
+    const res = await renderRequest("/targeter/status/2040000000000000003");
+    assert.equal(res.statusCode, 200);
+    assert.match(res.body, /class="thread"/);
+    assert.ok(res.body.indexOf("root post") < res.body.indexOf("parent reply"));
+    assert.ok(res.body.indexOf("parent reply") < res.body.lastIndexOf("selected reply"));
+    assert.equal((res.body.match(/data-iv-post/g) || []).length, 1);
+    assert.ok(res.body.indexOf("data-iv-post") < res.body.lastIndexOf("selected reply"));
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
 test("renders poll, translation, community note, external media, and ordered media", () => {
   const tweet = baseTweet({
     media: {

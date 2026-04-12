@@ -77,6 +77,15 @@ a {
   box-shadow: none;
 }
 
+.thread {
+  display: grid;
+  gap: 14px;
+}
+
+.thread-post {
+  box-shadow: none;
+}
+
 .quote-author {
   display: none;
   margin: 0 0 12px;
