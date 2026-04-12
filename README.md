@@ -35,7 +35,10 @@ PORT=3000
 HOST=127.0.0.1
 PUBLIC_ORIGIN=https://sharex.com
 MEDIA_TOKEN_SECRET=replace-with-a-long-random-secret
+TELEGRAM_IV_DIRECT_MEDIA=1
 APP_USER_AGENT="ShareXPostPages/0.1 contact@example.com"
 ```
 
 `MEDIA_TOKEN_SECRET` should be set in production so media proxy URLs cannot be decrypted with the development fallback secret.
+
+`TELEGRAM_IV_DIRECT_MEDIA=1` is optional. On serverless hosts such as Vercel, it lets Telegram's Instant View fetcher follow `/media/...` video requests to the upstream video file instead of forcing the serverless function to stream the full MP4. Normal browser HTML still uses same-origin `/media/...` URLs.

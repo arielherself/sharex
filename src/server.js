@@ -113,6 +113,24 @@ function validateMediaUrl(value) {
   return parsed.toString();
 }
 
+function shouldRedirectTelegramMedia(req, upstreamUrl) {
+  if (process.env.TELEGRAM_IV_DIRECT_MEDIA !== "1") {
+    return false;
+  }
+
+  const userAgent = req.headers["user-agent"] || "";
+  if (!/TelegramBot|Telegram/i.test(userAgent)) {
+    return false;
+  }
+
+  try {
+    const parsed = new URL(upstreamUrl);
+    return parsed.hostname === "video.twimg.com";
+  } catch {
+    return false;
+  }
+}
+
 function escapeHtml(value) {
   return String(value ?? "")
     .replaceAll("&", "&amp;")
@@ -351,13 +369,36 @@ function normalizePhoto(photo, origin, absoluteMedia = false) {
 }
 
 function normalizeVideo(video, origin, absoluteMedia = false) {
+  const source = selectVideoSource(video);
   return {
     type: video.type || "video",
-    src: mediaUrl(origin, video.url, absoluteMedia),
+    src: mediaUrl(origin, source.url, absoluteMedia),
     poster: mediaUrl(origin, video.thumbnail_url, absoluteMedia),
     width: video.width || null,
     height: video.height || null,
-    format: video.format || "video/mp4",
+    format: source.format || video.format || "video/mp4",
+  };
+}
+
+function selectVideoSource(video) {
+  const variants = [...(video.variants || []), ...(video.formats || [])]
+    .filter((variant) => {
+      const contentType = variant.content_type || "";
+      const container = variant.container || "";
+      return (
+        variant.url &&
+        (contentType === "video/mp4" ||
+          container === "mp4" ||
+          /\.mp4(?:\?|$)/i.test(variant.url)) &&
+        Number(variant.bitrate || 0) > 0
+      );
+    })
+    .sort((a, b) => Number(a.bitrate || 0) - Number(b.bitrate || 0));
+
+  const selected = variants[0];
+  return {
+    url: selected?.url || video.url,
+    format: selected?.content_type || video.format || "video/mp4",
   };
 }
 
@@ -1049,7 +1090,16 @@ function firstAvailableVideoSource(tweet) {
   const video =
     tweet.media?.all?.find((item) => item.type === "video" || item.type === "gif") ||
     tweet.media?.videos?.[0];
-  return video?.url ? video : null;
+  if (!video?.url) {
+    return null;
+  }
+
+  const source = selectVideoSource(video);
+  return {
+    ...video,
+    url: source.url,
+    format: source.format || video.format,
+  };
 }
 
 function renderPage(tweet, origin, pathValue) {
@@ -1202,6 +1252,15 @@ async function serveAsset(req, res, pathname) {
 
 async function proxyMedia(req, res, token) {
   const upstreamUrl = validateMediaUrl(decryptUrl(token));
+  if (shouldRedirectTelegramMedia(req, upstreamUrl)) {
+    res.writeHead(302, {
+      Location: upstreamUrl,
+      "Cache-Control": "private, no-store",
+      "X-Content-Type-Options": "nosniff",
+    });
+    return res.end();
+  }
+
   const headers = {
     Accept: req.headers.accept || "*/*",
     "User-Agent": APP_USER_AGENT,
