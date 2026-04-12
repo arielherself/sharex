@@ -202,6 +202,8 @@ test("renders poll, translation, community note, external media, and ordered med
   assert.doesNotMatch(html, /class="photo-link"[^>]*target="_blank"/);
   assert.doesNotMatch(html, /count-[1-4]/);
   assert.match(html, /post-video/);
+  assert.match(html, /class="video-download" href="\/media\/[^"]+" download/);
+  assert.match(html, /Download video/);
   assert.match(html, /poll-card/);
   assert.match(html, /translation-card/);
   assert.match(html, /community-note/);
@@ -288,6 +290,7 @@ test("photo grid css preserves full image aspect ratios", () => {
   assert.match(styles, /\.photo-overlay-image \{[^}]*object-fit: contain;/s);
   assert.match(script, /closest\("a\.photo-link"\)/);
   assert.match(script, /className = "photo-overlay"/);
+  assert.match(styles, /\.video-download \{/);
   assert.doesNotMatch(styles, /\.photo-tile img \{[^}]*object-fit: cover;/s);
 });
 

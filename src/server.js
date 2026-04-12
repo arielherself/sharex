@@ -690,7 +690,8 @@ function renderVideos(media) {
         >
           <source src="${escapeAttr(video.src)}" type="${escapeAttr(video.format)}">
           Your browser cannot play this video.
-        </video>`;
+        </video>
+        <a class="video-download" href="${escapeAttr(video.src)}" download rel="noopener noreferrer">Download video</a>`;
         })
         .join("")}
     </div>`;

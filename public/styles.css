@@ -285,6 +285,18 @@ a {
   border-radius: 8px;
 }
 
+.video-download {
+  justify-self: start;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 8px 12px;
+  background: var(--panel);
+  color: var(--accent-strong);
+  font-size: 0.94rem;
+  font-weight: 800;
+  text-decoration: none;
+}
+
 .external-media,
 .poll-card,
 .translation-card,
