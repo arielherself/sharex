@@ -1,12 +1,13 @@
 const assert = require("node:assert/strict");
 const test = require("node:test");
 
+const appHandler = require("../src/server");
 const {
   normalizeTweet,
   renderTweet,
   renderMeta,
   sanitizeExternalUrl,
-} = require("../src/server");
+} = appHandler;
 
 const ORIGIN = "https://sharex.test";
 
@@ -28,6 +29,42 @@ function baseTweet(overrides = {}) {
     ...overrides,
   };
 }
+
+function renderRequest(url) {
+  return new Promise((resolve, reject) => {
+    const req = {
+      method: "GET",
+      url,
+      headers: { host: "sharex.test" },
+    };
+    const res = {
+      headersSent: false,
+      statusCode: null,
+      headers: null,
+      body: "",
+      writeHead(statusCode, headers) {
+        this.statusCode = statusCode;
+        this.headers = headers;
+        this.headersSent = true;
+      },
+      end(chunk = "") {
+        this.body += chunk;
+        resolve(this);
+      },
+      destroy(error) {
+        reject(error);
+      },
+    };
+
+    appHandler(req, res);
+  });
+}
+
+test("html pages use a fingerprinted stylesheet URL", async () => {
+  const res = await renderRequest("/");
+  assert.equal(res.statusCode, 200);
+  assert.match(res.body, /href="\/assets\/styles\.css\?v=[a-f0-9]{12}"/);
+});
 
 test("renders poll, translation, community note, external media, and ordered media", () => {
   const tweet = baseTweet({

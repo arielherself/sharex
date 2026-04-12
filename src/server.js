@@ -17,6 +17,11 @@ const TOKEN_SECRET =
 const TOKEN_KEY = crypto.createHash("sha256").update(TOKEN_SECRET).digest();
 
 const PUBLIC_DIR = path.join(__dirname, "..", "public");
+const STYLESHEET_VERSION = crypto
+  .createHash("sha256")
+  .update(fs.readFileSync(path.join(PUBLIC_DIR, "styles.css")))
+  .digest("hex")
+  .slice(0, 12);
 const ASSET_TYPES = new Map([
   [".css", "text/css; charset=utf-8"],
   [".png", "image/png"],
@@ -1078,6 +1083,10 @@ function contentTypeForImageUrl(value) {
   }
 }
 
+function stylesheetHref() {
+  return `/assets/styles.css?v=${STYLESHEET_VERSION}`;
+}
+
 function firstAvailableVideoSource(tweet) {
   const video =
     tweet.media?.all?.find((item) => item.type === "video" || item.type === "gif") ||
@@ -1103,7 +1112,7 @@ function renderPage(tweet, origin, pathValue) {
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   ${renderMeta(tweet, origin, pathValue)}
-  <link rel="stylesheet" href="/assets/styles.css">
+  <link rel="stylesheet" href="${escapeAttr(stylesheetHref())}">
 </head>
 <body>
   <main class="page-shell">
@@ -1121,7 +1130,7 @@ function renderHome() {
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>ShareX Post Viewer</title>
   <meta name="description" content="View a public post as a clean shareable page.">
-  <link rel="stylesheet" href="/assets/styles.css">
+  <link rel="stylesheet" href="${escapeAttr(stylesheetHref())}">
 </head>
 <body>
   <main class="page-shell home">
@@ -1147,7 +1156,7 @@ function renderError(statusCode, message) {
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>${escapeHtml(statusCode)} ${escapeHtml(message)}</title>
-  <link rel="stylesheet" href="/assets/styles.css">
+  <link rel="stylesheet" href="${escapeAttr(stylesheetHref())}">
 </head>
 <body>
   <main class="page-shell">
