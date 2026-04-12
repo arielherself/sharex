@@ -528,20 +528,24 @@ function renderPhotoGrid(media) {
         },
       ];
 
+  const gridClass = photos.length > 1 ? " photo-grid-thumbnails" : "";
+
   return `
-    <div class="photo-grid">
+    <div class="photo-grid${gridClass}">
       ${photos
         .map(
           (photo) => `
         <figure class="photo-tile">
-          <img
-            src="${escapeAttr(photo.src)}"
-            alt="${escapeAttr(photo.alt)}"
-            loading="lazy"
-            decoding="async"
-            width="${escapeAttr(photo.width || "")}"
-            height="${escapeAttr(photo.height || "")}"
-          >
+          <a class="photo-link" href="${escapeAttr(photo.src)}" target="_blank" rel="noopener noreferrer" aria-label="Open original photo">
+            <img
+              src="${escapeAttr(photo.src)}"
+              alt="${escapeAttr(photo.alt)}"
+              loading="lazy"
+              decoding="async"
+              width="${escapeAttr(photo.width || "")}"
+              height="${escapeAttr(photo.height || "")}"
+            >
+          </a>
         </figure>`
         )
         .join("")}

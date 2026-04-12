@@ -40,6 +40,12 @@ test("renders poll, translation, community note, external media, and ordered med
           height: 80,
         },
         {
+          type: "photo",
+          url: "https://pbs.twimg.com/media/photo2.jpg",
+          width: 80,
+          height: 120,
+        },
+        {
           type: "gif",
           url: "https://video.twimg.com/tweet_video/video.mp4",
           thumbnail_url: "https://pbs.twimg.com/tweet_video_thumb/thumb.jpg",
@@ -76,6 +82,8 @@ test("renders poll, translation, community note, external media, and ordered med
   const html = renderTweet(normalized);
 
   assert.match(html, /photo-grid/);
+  assert.match(html, /photo-grid-thumbnails/);
+  assert.match(html, /class="photo-link" href="\/media\//);
   assert.doesNotMatch(html, /count-[1-4]/);
   assert.match(html, /post-video/);
   assert.match(html, /poll-card/);
@@ -121,8 +129,10 @@ test("photo grid css preserves full image aspect ratios", () => {
   );
 
   assert.match(styles, /\.photo-tile img \{[^}]*height: auto;/s);
-  assert.doesNotMatch(styles, /grid-template-columns:\s*repeat\(2/);
-  assert.doesNotMatch(styles, /\.photo-tile img \{[^}]*height: 100%;/s);
+  assert.match(styles, /\.photo-grid-thumbnails \{[^}]*grid-template-columns:\s*repeat\(3, minmax\(0, 1fr\)\);/s);
+  assert.match(styles, /\.photo-grid-thumbnails \.photo-tile \{[^}]*aspect-ratio: 1 \/ 1;/s);
+  assert.match(styles, /\.photo-link \{[^}]*height: 100%;/s);
+  assert.match(styles, /\.photo-grid-thumbnails \.photo-tile img \{[^}]*object-fit: contain;/s);
   assert.doesNotMatch(styles, /\.photo-tile img \{[^}]*object-fit: cover;/s);
 });
 
