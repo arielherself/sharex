@@ -309,17 +309,18 @@ function getReplyParentScreenName(tweet) {
 
 function normalizeTweet(tweet, origin, absoluteMedia = false, depth = 0) {
   const media = tweet.media || {};
+  const tweetId = String(tweet.id || "");
   const photos = (media.photos || []).map((photo) =>
     normalizePhoto(photo, origin, absoluteMedia)
   );
   const videos = (media.videos || []).map((video) =>
-    normalizeVideo(video, origin, absoluteMedia)
+    normalizeVideo(video, origin, absoluteMedia, tweetId)
   );
   const external = media.external
     ? normalizeExternalMedia(media.external)
     : null;
   return {
-    id: String(tweet.id || ""),
+    id: tweetId,
     text: stripXUrls(tweet.text || ""),
     author: {
       name: tweet.author?.name || "Unknown",
@@ -346,7 +347,7 @@ function normalizeTweet(tweet, origin, absoluteMedia = false, depth = 0) {
     media: {
       all: Array.isArray(media.all)
         ? media.all
-            .map((item) => normalizeMediaItem(item, origin, absoluteMedia))
+            .map((item) => normalizeMediaItem(item, origin, absoluteMedia, tweetId))
             .filter(Boolean)
         : [],
       photos,
@@ -407,13 +408,13 @@ function normalizeCommunityNote(note) {
   return text ? stripXUrls(text) : null;
 }
 
-function normalizeMediaItem(item, origin, absoluteMedia = false) {
+function normalizeMediaItem(item, origin, absoluteMedia = false, tweetId = "") {
   if (item.type === "photo") {
     return normalizePhoto(item, origin, absoluteMedia);
   }
 
   if (item.type === "video" || item.type === "gif") {
-    return normalizeVideo(item, origin, absoluteMedia);
+    return normalizeVideo(item, origin, absoluteMedia, tweetId);
   }
 
   return null;
@@ -429,7 +430,7 @@ function normalizePhoto(photo, origin, absoluteMedia = false) {
   };
 }
 
-function normalizeVideo(video, origin, absoluteMedia = false) {
+function normalizeVideo(video, origin, absoluteMedia = false, tweetId = "") {
   const source = selectVideoSource(video, { quality: "best" });
   return {
     type: video.type || "video",
@@ -438,6 +439,7 @@ function normalizeVideo(video, origin, absoluteMedia = false) {
     width: video.width || null,
     height: video.height || null,
     format: source.format || video.format || "video/mp4",
+    downloadFilename: videoDownloadFilename(source.format || video.format || "video/mp4", tweetId),
   };
 }
 
@@ -696,27 +698,31 @@ function renderVideos(media) {
           <source src="${escapeAttr(video.src)}" type="${escapeAttr(video.format)}">
           Your browser cannot play this video.
         </video>
-        <a class="video-download" href="${escapeAttr(videoDownloadUrl(video.src, video.format))}" download="${escapeAttr(videoDownloadFilename(video.format))}" rel="noopener noreferrer">Download video</a>`;
+        <a class="video-download" href="${escapeAttr(videoDownloadUrl(video.src, video.downloadFilename || videoDownloadFilename(video.format)))}" download="${escapeAttr(video.downloadFilename || videoDownloadFilename(video.format))}" rel="noopener noreferrer">Download video</a>`;
         })
         .join("")}
     </div>`;
 }
 
-function videoDownloadUrl(src, format) {
+function videoDownloadUrl(src, filenameOrFormat) {
   if (!src) {
     return "";
   }
 
   if (/^\/media\/[A-Za-z0-9_.-]+$/.test(src)) {
-    return `${src}/${videoDownloadFilename(format)}?download=1`;
+    const filename = filenameOrFormat?.includes(".")
+      ? filenameOrFormat
+      : videoDownloadFilename(filenameOrFormat);
+    return `${src}/${filename}?download=1`;
   }
 
   return src;
 }
 
-function videoDownloadFilename(format) {
+function videoDownloadFilename(format, postId = "") {
   const extension = mediaExtension(format);
-  return `video.${extension}`;
+  const basename = String(postId || "").replace(/[^A-Za-z0-9_-]/g, "") || "video";
+  return `${basename}.${extension}`;
 }
 
 function mediaExtension(format) {
