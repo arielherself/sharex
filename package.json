@@ -1,0 +1,15 @@
+{
+  "name": "sharex-post-pages",
+  "version": "0.1.0",
+  "private": true,
+  "description": "A small full-stack app for rendering X posts through FxTwitter data with same-origin media proxying.",
+  "type": "commonjs",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "node --watch src/server.js",
+    "test": "node --test"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
