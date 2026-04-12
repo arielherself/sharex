@@ -852,6 +852,11 @@ function renderTweet(tweet, options = {}) {
       class="${isQuote ? "quote-post" : "post-card"}"
       ${isQuote ? "" : `data-iv-post data-iv-title="${escapeAttr(pageTitle)}" data-iv-author="${escapeAttr(tweet.author.name)}" data-iv-published-timestamp="${escapeAttr(tweet.createdTimestamp || "")}"`}
     >
+      ${
+        isQuote
+          ? `<p class="quote-author"><strong>${escapeHtml(tweet.author.name)}</strong> <span>@${escapeHtml(tweet.author.screenName)}</span></p>`
+          : ""
+      }
       <header class="post-header">
         ${avatar}
         <div class="identity">

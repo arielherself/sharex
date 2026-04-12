@@ -19,6 +19,6 @@ body: (//article[@data-iv-post]//section[has-class("iv-body")])[1]
 @remove: $body//progress
 
 # Engagement counters and profile chrome are intentionally excluded from body,
-# but this keeps the template robust if the HTML structure changes later.
+# but quoted post author attribution is kept through .quote-author.
 @remove: $body//*[has-class("post-footer")]
 @remove: $body//*[has-class("post-header")]

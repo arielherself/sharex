@@ -66,6 +66,18 @@ a {
   box-shadow: none;
 }
 
+.quote-author {
+  display: none;
+  margin: 0 0 12px;
+  color: var(--muted);
+  font-size: 0.94rem;
+  overflow-wrap: anywhere;
+}
+
+.quote-author strong {
+  color: var(--ink);
+}
+
 .post-header {
   display: flex;
   align-items: center;

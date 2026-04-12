@@ -120,3 +120,21 @@ test("article metadata prefers article title, preview, and cover", () => {
   assert.match(meta, /https:\/\/sharex\.test\/media\//);
   assert.doesNotMatch(meta, /pbs\.twimg\.com/);
 });
+
+test("quoted posts expose author attribution for Instant View", () => {
+  const tweet = baseTweet({
+    quote: baseTweet({
+      text: "quoted body",
+      author: {
+        name: "Quoted Author",
+        screen_name: "quoted",
+        avatar_url: "https://pbs.twimg.com/profile_images/quoted.jpg",
+      },
+    }),
+  });
+
+  const html = renderTweet(normalizeTweet(tweet, ORIGIN));
+  assert.match(html, /class="quote-author"/);
+  assert.match(html, /Quoted Author/);
+  assert.match(html, /@quoted/);
+});
