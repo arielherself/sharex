@@ -6,6 +6,7 @@ const {
   normalizeTweet,
   renderTweet,
   renderMeta,
+  selectVideoSource,
   sanitizeExternalUrl,
 } = appHandler;
 
@@ -219,6 +220,45 @@ test("renders poll, translation, community note, external media, and ordered med
   assert.match(html, /https:\/\/media\.example\.test\/video\.mp4/);
   assert.doesNotMatch(html, /pbs\.twimg\.com|video\.twimg\.com/);
   assert.doesNotMatch(html, /https:\/\/(?:[^/]+\.)?x\.com|https:\/\/(?:[^/]+\.)?twitter\.com/);
+});
+
+test("webpage videos use the best variant while metadata keeps the small preview", () => {
+  const tweet = baseTweet({
+    media: {
+      videos: [
+        {
+          type: "video",
+          url: "https://video.twimg.com/fallback.mp4",
+          thumbnail_url: "https://pbs.twimg.com/tweet_video_thumb/thumb.jpg",
+          width: 1280,
+          height: 720,
+          format: "video/mp4",
+          variants: [
+            {
+              url: "https://video.twimg.com/low.mp4",
+              content_type: "video/mp4",
+              bitrate: 832000,
+            },
+            {
+              url: "https://video.twimg.com/high.mp4",
+              content_type: "video/mp4",
+              bitrate: 2176000,
+            },
+          ],
+        },
+      ],
+    },
+  });
+
+  const html = renderTweet(normalizeTweet(tweet, ORIGIN));
+  const meta = renderMeta(tweet, ORIGIN, "/tester/status/2040000000000000000");
+
+  assert.match(html, /video-download/);
+  assert.match(html, /\/media\//);
+  assert.doesNotMatch(html, /video\.twimg\.com/);
+  assert.doesNotMatch(meta, /video\.twimg\.com/);
+  assert.equal(selectVideoSource(tweet.media.videos[0], { quality: "best" }).url, "https://video.twimg.com/high.mp4");
+  assert.equal(selectVideoSource(tweet.media.videos[0]).url, "https://video.twimg.com/low.mp4");
 });
 
 test("does not expose blocked external media URLs", () => {

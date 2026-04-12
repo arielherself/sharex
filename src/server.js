@@ -430,7 +430,7 @@ function normalizePhoto(photo, origin, absoluteMedia = false) {
 }
 
 function normalizeVideo(video, origin, absoluteMedia = false) {
-  const source = selectVideoSource(video);
+  const source = selectVideoSource(video, { quality: "best" });
   return {
     type: video.type || "video",
     src: mediaUrl(origin, source.url, absoluteMedia),
@@ -441,7 +441,8 @@ function normalizeVideo(video, origin, absoluteMedia = false) {
   };
 }
 
-function selectVideoSource(video) {
+function selectVideoSource(video, options = {}) {
+  const quality = options.quality || "smallest";
   const variants = [...(video.variants || []), ...(video.formats || [])]
     .filter((variant) => {
       const contentType = variant.content_type || "";
@@ -454,7 +455,11 @@ function selectVideoSource(video) {
         Number(variant.bitrate || 0) > 0
       );
     })
-    .sort((a, b) => Number(a.bitrate || 0) - Number(b.bitrate || 0));
+    .sort((a, b) =>
+      quality === "best"
+        ? Number(b.bitrate || 0) - Number(a.bitrate || 0)
+        : Number(a.bitrate || 0) - Number(b.bitrate || 0)
+    );
 
   const selected = variants[0];
   return {
@@ -1530,4 +1535,5 @@ module.exports.default = appHandler;
 module.exports.normalizeTweet = normalizeTweet;
 module.exports.renderTweet = renderTweet;
 module.exports.renderMeta = renderMeta;
+module.exports.selectVideoSource = selectVideoSource;
 module.exports.sanitizeExternalUrl = sanitizeExternalUrl;
