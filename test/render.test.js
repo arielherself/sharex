@@ -76,7 +76,7 @@ test("renders poll, translation, community note, external media, and ordered med
   const html = renderTweet(normalized);
 
   assert.match(html, /photo-grid/);
-  assert.doesNotMatch(html, /count-1/);
+  assert.doesNotMatch(html, /count-[1-4]/);
   assert.match(html, /post-video/);
   assert.match(html, /poll-card/);
   assert.match(html, /translation-card/);
@@ -121,6 +121,7 @@ test("photo grid css preserves full image aspect ratios", () => {
   );
 
   assert.match(styles, /\.photo-tile img \{[^}]*height: auto;/s);
+  assert.doesNotMatch(styles, /grid-template-columns:\s*repeat\(2/);
   assert.doesNotMatch(styles, /\.photo-tile img \{[^}]*height: 100%;/s);
   assert.doesNotMatch(styles, /\.photo-tile img \{[^}]*object-fit: cover;/s);
 });

@@ -528,10 +528,8 @@ function renderPhotoGrid(media) {
         },
       ];
 
-  const countClass = photos.length > 1 ? ` count-${Math.min(photos.length, 4)}` : "";
-
   return `
-    <div class="photo-grid${countClass}">
+    <div class="photo-grid">
       ${photos
         .map(
           (photo) => `
