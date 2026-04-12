@@ -95,12 +95,22 @@ test("renders poll, translation, community note, external media, and ordered med
 });
 
 test("does not expose blocked external media URLs", () => {
-  assert.equal(sanitizeExternalUrl("https://x.com/example/status/1"), "");
   assert.equal(sanitizeExternalUrl("https://pbs.twimg.com/media/photo.jpg"), "");
   assert.equal(
     sanitizeExternalUrl("https://video.example.test/movie.mp4"),
     "https://video.example.test/movie.mp4"
   );
+});
+
+test("keeps explicit non-media links in post text", () => {
+  const tweet = baseTweet({
+    text: "read https://example.com/post and https://t.co/abc123",
+  });
+
+  const html = renderTweet(normalizeTweet(tweet, ORIGIN));
+  assert.match(html, /https:\/\/example\.com\/post/);
+  assert.match(html, /https:\/\/t\.co\/abc123/);
+  assert.doesNotMatch(html, /\[link\]/);
 });
 
 test("article metadata prefers article title, preview, and cover", () => {

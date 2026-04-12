@@ -152,7 +152,7 @@ function compactText(value) {
 
 function stripXUrls(value) {
   return String(value || "").trim().replace(
-    /https?:\/\/(?:www\.)?(?:x\.com|twitter\.com|mobile\.twitter\.com|fxtwitter\.com|vxtwitter\.com|pbs\.twimg\.com|video\.twimg\.com|t\.co)\/[^\s]+/gi,
+    /https?:\/\/(?:pbs|video)\.twimg\.com\/[^\s]+/gi,
     "[link]"
   );
 }
@@ -184,12 +184,7 @@ function renderText(value) {
 function isBlockedFrontendUrl(value) {
   try {
     const parsed = new URL(value);
-    return /(?:^|\.)twitter\.com$/i.test(parsed.hostname) ||
-      /(?:^|\.)x\.com$/i.test(parsed.hostname) ||
-      /(?:^|\.)twimg\.com$/i.test(parsed.hostname) ||
-      /(?:^|\.)t\.co$/i.test(parsed.hostname) ||
-      /(?:^|\.)fxtwitter\.com$/i.test(parsed.hostname) ||
-      /(?:^|\.)vxtwitter\.com$/i.test(parsed.hostname);
+    return /(?:^|\.)twimg\.com$/i.test(parsed.hostname);
   } catch {
     return false;
   }
