@@ -22,8 +22,14 @@ const STYLESHEET_VERSION = crypto
   .update(fs.readFileSync(path.join(PUBLIC_DIR, "styles.css")))
   .digest("hex")
   .slice(0, 12);
+const SCRIPT_VERSION = crypto
+  .createHash("sha256")
+  .update(fs.readFileSync(path.join(PUBLIC_DIR, "app.js")))
+  .digest("hex")
+  .slice(0, 12);
 const ASSET_TYPES = new Map([
   [".css", "text/css; charset=utf-8"],
+  [".js", "application/javascript; charset=utf-8"],
   [".png", "image/png"],
 ]);
 
@@ -541,7 +547,7 @@ function renderPhotoGrid(media) {
         .map(
           (photo) => `
         <figure class="photo-tile">
-          <a class="photo-link" href="${escapeAttr(photo.src)}" target="_blank" rel="noopener noreferrer" aria-label="Open original photo">
+          <a class="photo-link" href="${escapeAttr(photo.src)}" rel="noopener noreferrer" aria-label="Open photo preview">
             <img
               src="${escapeAttr(photo.src)}"
               alt="${escapeAttr(photo.alt)}"
@@ -1087,6 +1093,10 @@ function stylesheetHref() {
   return `/assets/styles.css?v=${STYLESHEET_VERSION}`;
 }
 
+function scriptHref() {
+  return `/assets/app.js?v=${SCRIPT_VERSION}`;
+}
+
 function firstAvailableVideoSource(tweet) {
   const video =
     tweet.media?.all?.find((item) => item.type === "video" || item.type === "gif") ||
@@ -1118,6 +1128,7 @@ function renderPage(tweet, origin, pathValue) {
   <main class="page-shell">
     ${renderTweet(normalized, { title })}
   </main>
+  <script src="${escapeAttr(scriptHref())}" defer></script>
 </body>
 </html>`;
 }

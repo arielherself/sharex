@@ -66,6 +66,24 @@ test("html pages use a fingerprinted stylesheet URL", async () => {
   assert.match(res.body, /href="\/assets\/styles\.css\?v=[a-f0-9]{12}"/);
 });
 
+test("post pages load the photo overlay script", async () => {
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async () =>
+    new Response(JSON.stringify({ code: 200, tweet: baseTweet() }), {
+      status: 200,
+      headers: { "content-type": "application/json" },
+    });
+
+  try {
+    const res = await renderRequest("/tester/status/2040000000000000000");
+    assert.equal(res.statusCode, 200);
+    assert.match(res.body, /href="\/assets\/styles\.css\?v=[a-f0-9]{12}"/);
+    assert.match(res.body, /src="\/assets\/app\.js\?v=[a-f0-9]{12}" defer/);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
 test("renders poll, translation, community note, external media, and ordered media", () => {
   const tweet = baseTweet({
     media: {
@@ -121,6 +139,7 @@ test("renders poll, translation, community note, external media, and ordered med
   assert.match(html, /photo-grid/);
   assert.match(html, /photo-grid-thumbnails/);
   assert.match(html, /class="photo-link" href="\/media\//);
+  assert.doesNotMatch(html, /class="photo-link"[^>]*target="_blank"/);
   assert.doesNotMatch(html, /count-[1-4]/);
   assert.match(html, /post-video/);
   assert.match(html, /poll-card/);
@@ -164,12 +183,19 @@ test("photo grid css preserves full image aspect ratios", () => {
     require("node:path").join(__dirname, "../public/styles.css"),
     "utf8"
   );
+  const script = require("node:fs").readFileSync(
+    require("node:path").join(__dirname, "../public/app.js"),
+    "utf8"
+  );
 
   assert.match(styles, /\.photo-tile img \{[^}]*height: auto;/s);
   assert.match(styles, /\.photo-grid-thumbnails \{[^}]*grid-template-columns:\s*repeat\(3, minmax\(0, 1fr\)\);/s);
   assert.match(styles, /\.photo-grid-thumbnails \.photo-tile \{[^}]*aspect-ratio: 1 \/ 1;/s);
   assert.match(styles, /\.photo-link \{[^}]*height: 100%;/s);
   assert.match(styles, /\.photo-grid-thumbnails \.photo-tile img \{[^}]*object-fit: contain;/s);
+  assert.match(styles, /\.photo-overlay \{/);
+  assert.match(script, /closest\("a\.photo-link"\)/);
+  assert.match(script, /className = "photo-overlay"/);
   assert.doesNotMatch(styles, /\.photo-tile img \{[^}]*object-fit: cover;/s);
 });
 
