@@ -113,6 +113,18 @@ test("keeps explicit non-media links in post text", () => {
   assert.doesNotMatch(html, /\[link\]/);
 });
 
+test("photo grid css preserves full image aspect ratios", () => {
+  const styles = require("node:fs").readFileSync(
+    require("node:path").join(__dirname, "../public/styles.css"),
+    "utf8"
+  );
+
+  assert.match(styles, /\.photo-tile img \{[^}]*height: auto;/s);
+  assert.match(styles, /\.photo-tile img \{[^}]*object-fit: contain;/s);
+  assert.doesNotMatch(styles, /\.photo-tile img \{[^}]*height: 100%;/s);
+  assert.doesNotMatch(styles, /\.photo-tile img \{[^}]*object-fit: cover;/s);
+});
+
 test("article metadata prefers article title, preview, and cover", () => {
   const tweet = baseTweet({
     text: "",
