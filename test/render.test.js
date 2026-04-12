@@ -202,7 +202,7 @@ test("renders poll, translation, community note, external media, and ordered med
   assert.doesNotMatch(html, /class="photo-link"[^>]*target="_blank"/);
   assert.doesNotMatch(html, /count-[1-4]/);
   assert.match(html, /post-video/);
-  assert.match(html, /class="video-download" href="\/media\/[^"]+" download/);
+  assert.match(html, /class="video-download" href="\/media\/[^"]+\/video\.mp4\?download=1" download="video\.mp4"/);
   assert.match(html, /Download video/);
   assert.match(html, /poll-card/);
   assert.match(html, /translation-card/);

@@ -691,10 +691,38 @@ function renderVideos(media) {
           <source src="${escapeAttr(video.src)}" type="${escapeAttr(video.format)}">
           Your browser cannot play this video.
         </video>
-        <a class="video-download" href="${escapeAttr(video.src)}" download rel="noopener noreferrer">Download video</a>`;
+        <a class="video-download" href="${escapeAttr(videoDownloadUrl(video.src, video.format))}" download="${escapeAttr(videoDownloadFilename(video.format))}" rel="noopener noreferrer">Download video</a>`;
         })
         .join("")}
     </div>`;
+}
+
+function videoDownloadUrl(src, format) {
+  if (!src) {
+    return "";
+  }
+
+  if (/^\/media\/[A-Za-z0-9_.-]+$/.test(src)) {
+    return `${src}/${videoDownloadFilename(format)}?download=1`;
+  }
+
+  return src;
+}
+
+function videoDownloadFilename(format) {
+  const extension = mediaExtension(format);
+  return `video.${extension}`;
+}
+
+function mediaExtension(format) {
+  const normalized = String(format || "").toLowerCase();
+  if (normalized.includes("webm")) {
+    return "webm";
+  }
+  if (normalized.includes("quicktime") || normalized.includes("mov")) {
+    return "mov";
+  }
+  return "mp4";
 }
 
 function renderExternalMedia(external) {
@@ -1350,7 +1378,19 @@ async function serveAsset(res, pathname) {
   fs.createReadStream(assetPath).pipe(res);
 }
 
-async function proxyMedia(req, res, token) {
+function sanitizeDownloadFilename(filename) {
+  const clean = String(filename || "")
+    .replace(/[^A-Za-z0-9_.-]/g, "")
+    .replace(/^\.+/, "");
+  return clean || "video.mp4";
+}
+
+function wantsMediaDownload(req, filename) {
+  const url = new URL(req.url, "http://localhost");
+  return Boolean(filename) || url.searchParams.has("download");
+}
+
+async function proxyMedia(req, res, token, filename = "") {
   const upstreamUrl = validateMediaUrl(decryptUrl(token));
   if (shouldRedirectTelegramMedia(req, upstreamUrl)) {
     res.writeHead(302, {
@@ -1389,6 +1429,10 @@ async function proxyMedia(req, res, token) {
     }
   }
 
+  if (wantsMediaDownload(req, filename)) {
+    responseHeaders["Content-Disposition"] = `attachment; filename="${sanitizeDownloadFilename(filename || "video.mp4")}"`;
+  }
+
   res.writeHead(upstream.status, responseHeaders);
   if (upstream.body) {
     Readable.fromWeb(upstream.body).pipe(res);
@@ -1424,9 +1468,9 @@ async function handleRequest(req, res) {
     return serveAsset(res, pathname);
   }
 
-  const mediaMatch = pathname.match(/^\/media\/([A-Za-z0-9_.-]+)$/);
+  const mediaMatch = pathname.match(/^\/media\/([A-Za-z0-9_.-]+)(?:\/([A-Za-z0-9_.-]+))?$/);
   if (mediaMatch) {
-    return proxyMedia(req, res, mediaMatch[1]);
+    return proxyMedia(req, res, mediaMatch[1], mediaMatch[2] || "");
   }
 
   const apiMatch = pathname.match(/^\/api\/status\/([A-Za-z0-9_]{1,15})\/([0-9]{5,25})\/?$/);
