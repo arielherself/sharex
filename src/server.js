@@ -19,13 +19,7 @@ const TOKEN_KEY = crypto.createHash("sha256").update(TOKEN_SECRET).digest();
 const PUBLIC_DIR = path.join(__dirname, "..", "public");
 const ASSET_TYPES = new Map([
   [".css", "text/css; charset=utf-8"],
-  [".js", "application/javascript; charset=utf-8"],
   [".png", "image/png"],
-  [".jpg", "image/jpeg"],
-  [".jpeg", "image/jpeg"],
-  [".webp", "image/webp"],
-  [".svg", "image/svg+xml"],
-  [".ico", "image/x-icon"],
 ]);
 
 const UPSTREAM_MEDIA_HOSTS = new Set([
@@ -206,22 +200,6 @@ function formatDate(timestamp) {
     timeStyle: "short",
     timeZone: "UTC",
   }).format(new Date(timestamp * 1000));
-}
-
-function firstAvailableMedia(tweet) {
-  const media = tweet.media || {};
-  const firstPhoto = media.photos?.[0]?.url;
-  const firstVideoThumb = media.videos?.[0]?.thumbnail_url;
-  const mosaic = media.mosaic?.formats?.webp || media.mosaic?.formats?.jpeg;
-  return firstPhoto || firstVideoThumb || mosaic || tweet.author?.avatar_url || "";
-}
-
-function firstAvailableVideo(tweet) {
-  const video = tweet.media?.videos?.[0];
-  if (!video?.url) {
-    return null;
-  }
-  return video;
 }
 
 async function fetchTweet(screenName, statusId) {
@@ -550,8 +528,10 @@ function renderPhotoGrid(media) {
         },
       ];
 
+  const countClass = photos.length > 1 ? ` count-${Math.min(photos.length, 4)}` : "";
+
   return `
-    <div class="photo-grid count-${Math.min(photos.length, 4)}">
+    <div class="photo-grid${countClass}">
       ${photos
         .map(
           (photo) => `
@@ -1228,7 +1208,7 @@ function sendJson(res, statusCode, payload) {
   res.end(JSON.stringify(payload));
 }
 
-async function serveAsset(req, res, pathname) {
+async function serveAsset(res, pathname) {
   const relative = pathname.replace(/^\/assets\//, "");
   const assetPath = path.join(PUBLIC_DIR, relative);
   if (!assetPath.startsWith(PUBLIC_DIR + path.sep)) {
@@ -1331,7 +1311,7 @@ async function handleRequest(req, res) {
   }
 
   if (pathname.startsWith("/assets/")) {
-    return serveAsset(req, res, pathname);
+    return serveAsset(res, pathname);
   }
 
   const mediaMatch = pathname.match(/^\/media\/([A-Za-z0-9_.-]+)$/);
@@ -1390,10 +1370,7 @@ if (require.main === module) {
 
 module.exports = appHandler;
 module.exports.default = appHandler;
-module.exports.server = server;
 module.exports.normalizeTweet = normalizeTweet;
 module.exports.renderTweet = renderTweet;
-module.exports.renderPage = renderPage;
 module.exports.renderMeta = renderMeta;
 module.exports.sanitizeExternalUrl = sanitizeExternalUrl;
-module.exports.startServer = startServer;

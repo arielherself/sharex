@@ -168,10 +168,6 @@ a {
   background: #e9eeee;
 }
 
-.photo-grid.count-1 {
-  grid-template-columns: 1fr;
-}
-
 .photo-grid.count-2,
 .photo-grid.count-3,
 .photo-grid.count-4 {
@@ -184,19 +180,10 @@ a {
   background: #101414;
 }
 
-.photo-grid.count-1 .photo-tile {
-  min-height: 0;
-}
-
-.photo-grid.count-3 .photo-tile:first-child {
-  grid-row: auto;
-}
-
 .photo-tile img {
   display: block;
   width: 100%;
   height: auto;
-  object-fit: contain;
 }
 
 .video-stack {
@@ -482,9 +469,5 @@ a {
   .photo-grid.count-3,
   .photo-grid.count-4 {
     grid-template-columns: 1fr;
-  }
-
-  .photo-grid.count-3 .photo-tile:first-child {
-    grid-row: auto;
   }
 }
