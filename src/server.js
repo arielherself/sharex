@@ -7,6 +7,7 @@ const { Readable } = require("stream");
 const PORT = Number(process.env.PORT || 3000);
 const HOST = process.env.HOST || "127.0.0.1";
 const PUBLIC_ORIGIN = process.env.PUBLIC_ORIGIN || "";
+const SITE_NAME = process.env.SITE_NAME || "ShareX";
 const APP_USER_AGENT =
   process.env.APP_USER_AGENT ||
   "ShareXPostPages/0.1 (+https://example.invalid; contact required)";
@@ -838,6 +839,7 @@ function renderArticleInlineText(text, block, article) {
 
 function renderTweet(tweet, options = {}) {
   const isQuote = Boolean(options.quote);
+  const pageTitle = options.title || `${tweet.author.name} (@${tweet.author.screenName})`;
   const avatar = tweet.author.avatar
     ? `<img class="avatar" src="${escapeAttr(tweet.author.avatar)}" alt="" loading="lazy" decoding="async">`
     : `<span class="avatar avatar-fallback" aria-hidden="true">${escapeHtml(
@@ -846,7 +848,10 @@ function renderTweet(tweet, options = {}) {
   const dateLabel = formatDate(tweet.createdTimestamp);
 
   return `
-    <article class="${isQuote ? "quote-post" : "post-card"}">
+    <article
+      class="${isQuote ? "quote-post" : "post-card"}"
+      ${isQuote ? "" : `data-iv-post data-iv-title="${escapeAttr(pageTitle)}" data-iv-author="${escapeAttr(tweet.author.name)}" data-iv-published-timestamp="${escapeAttr(tweet.createdTimestamp || "")}"`}
+    >
       <header class="post-header">
         ${avatar}
         <div class="identity">
@@ -855,20 +860,22 @@ function renderTweet(tweet, options = {}) {
         </div>
       </header>
 
-      ${
-        tweet.text
-          ? `<p class="post-text">${renderText(tweet.text)}</p>`
-          : tweet.article
-            ? ""
-            : `<p class="post-text muted">No text content.</p>`
-      }
+      <section class="iv-body">
+        ${
+          tweet.text
+            ? `<p class="post-text">${renderText(tweet.text)}</p>`
+            : tweet.article
+              ? ""
+              : `<p class="post-text muted">No text content.</p>`
+        }
 
-      ${renderMedia(tweet.media)}
-      ${renderPoll(tweet.poll)}
-      ${renderArticle(tweet.article)}
-      ${renderTranslation(tweet.translation)}
-      ${renderCommunityNote(tweet.communityNote)}
-      ${tweet.quote ? renderTweet(tweet.quote, { quote: true }) : ""}
+        ${renderMedia(tweet.media)}
+        ${renderPoll(tweet.poll)}
+        ${renderArticle(tweet.article)}
+        ${renderTranslation(tweet.translation)}
+        ${renderCommunityNote(tweet.communityNote)}
+        ${tweet.quote ? renderTweet(tweet.quote, { quote: true }) : ""}
+      </section>
 
       <footer class="post-footer">
         ${dateLabel ? `<time datetime="${escapeAttr(tweet.createdAt)}">${escapeHtml(dateLabel)} UTC</time>` : ""}
@@ -886,35 +893,45 @@ function renderTweet(tweet, options = {}) {
     </article>`;
 }
 
-function renderMeta(tweet, origin, pathValue) {
+function getPageTitle(tweet) {
   const screenName = tweet.author?.screen_name || tweet.author?.screenName || "";
   const authorName = tweet.author?.name || "Unknown";
   const articleTitle = stripXUrls(tweet.article?.title || "");
-  const title = articleTitle || `${authorName} (@${screenName})`;
+  return articleTitle || `${authorName} (@${screenName})`;
+}
+
+function renderMeta(tweet, origin, pathValue) {
+  const screenName = tweet.author?.screen_name || tweet.author?.screenName || "";
+  const authorName = tweet.author?.name || "Unknown";
+  const title = getPageTitle(tweet);
   const description =
     compactText(stripXUrls(tweet.article?.preview_text || tweet.text)) ||
     `Post by ${authorName || screenName}`;
   const absoluteTweet = `${origin}${pathValue}`;
-  const mediaSource = firstAvailableMediaSource(tweet);
-  const imageUrl = mediaSource
-    ? mediaUrl(origin, mediaSource, true)
-    : `${origin}/assets/preview.svg`;
+  const previewImage = getPreviewImage(tweet, origin);
   const video = firstAvailableVideoSource(tweet);
   const videoUrl = video ? mediaUrl(origin, video.url, true) : "";
 
   return `
     <title>${escapeHtml(title)}</title>
     <meta name="description" content="${escapeAttr(description)}">
+    <link rel="canonical" href="${escapeAttr(absoluteTweet)}">
     <meta property="og:type" content="article">
+    <meta property="og:site_name" content="${escapeAttr(SITE_NAME)}">
     <meta property="og:title" content="${escapeAttr(title)}">
     <meta property="og:description" content="${escapeAttr(description)}">
     <meta property="og:url" content="${escapeAttr(absoluteTweet)}">
-    <meta property="og:image" content="${escapeAttr(imageUrl)}">
+    <meta property="og:image" content="${escapeAttr(previewImage.url)}">
+    <meta property="og:image:secure_url" content="${escapeAttr(previewImage.url)}">
+    <meta property="og:image:type" content="${escapeAttr(previewImage.type)}">
+    <meta property="og:image:width" content="${escapeAttr(previewImage.width)}">
+    <meta property="og:image:height" content="${escapeAttr(previewImage.height)}">
     <meta property="og:image:alt" content="${escapeAttr(description)}">
     <meta name="twitter:card" content="${video ? "player" : "summary_large_image"}">
     <meta name="twitter:title" content="${escapeAttr(title)}">
     <meta name="twitter:description" content="${escapeAttr(description)}">
-    <meta name="twitter:image" content="${escapeAttr(imageUrl)}">
+    <meta name="twitter:image" content="${escapeAttr(previewImage.url)}">
+    <meta name="twitter:image:alt" content="${escapeAttr(description)}">
     ${
       video
         ? `
@@ -927,32 +944,112 @@ function renderMeta(tweet, origin, pathValue) {
     }`;
 }
 
-function firstAvailableMediaSource(tweet) {
+function getPreviewImage(tweet, origin) {
+  const media = firstAvailableImageMedia(tweet);
+  if (media?.url) {
+    return {
+      url: mediaUrl(origin, media.url, true),
+      width: media.width || 1200,
+      height: media.height || 630,
+      type: media.contentType || contentTypeForImageUrl(media.url),
+    };
+  }
+
+  return {
+    url: `${origin}/assets/preview.png`,
+    width: 1200,
+    height: 630,
+    type: "image/png",
+  };
+}
+
+function firstAvailableImageMedia(tweet) {
   const media = tweet.media || {};
-  const firstAllPhoto = media.all?.find((item) => item.type === "photo")?.url;
+  const articleCover = tweet.article?.cover_media?.media_info;
+  const firstAllPhoto = media.all?.find((item) => item.type === "photo");
   const firstAllVideoThumb = media.all?.find(
     (item) => item.type === "video" || item.type === "gif"
-  )?.thumbnail_url;
-  return (
-    tweet.article?.cover_media?.media_info?.original_img_url ||
-    firstAllPhoto ||
-    firstAllVideoThumb ||
-    media.photos?.[0]?.url ||
-    media.videos?.[0]?.thumbnail_url ||
-    media.mosaic?.formats?.webp ||
-    media.mosaic?.formats?.jpeg ||
-    tweet.author?.avatar_url ||
-    ""
   );
+  const photo = media.photos?.[0];
+  const video = media.videos?.[0];
+
+  if (articleCover?.original_img_url) {
+    return {
+      url: articleCover.original_img_url,
+      width: articleCover.original_img_width,
+      height: articleCover.original_img_height,
+    };
+  }
+
+  if (firstAllPhoto?.url) {
+    return {
+      url: firstAllPhoto.url,
+      width: firstAllPhoto.width,
+      height: firstAllPhoto.height,
+    };
+  }
+
+  if (firstAllVideoThumb?.thumbnail_url) {
+    return {
+      url: firstAllVideoThumb.thumbnail_url,
+      width: firstAllVideoThumb.width,
+      height: firstAllVideoThumb.height,
+    };
+  }
+
+  if (photo?.url) {
+    return { url: photo.url, width: photo.width, height: photo.height };
+  }
+
+  if (video?.thumbnail_url) {
+    return {
+      url: video.thumbnail_url,
+      width: video.width,
+      height: video.height,
+    };
+  }
+
+  if (media.mosaic?.formats?.webp || media.mosaic?.formats?.jpeg) {
+    const url = media.mosaic.formats.webp || media.mosaic.formats.jpeg;
+    return {
+      url,
+      width: media.mosaic.width,
+      height: media.mosaic.height,
+    };
+  }
+
+  return null;
+}
+
+function contentTypeForImageUrl(value) {
+  try {
+    const parsed = new URL(value);
+    const pathname = parsed.pathname.toLowerCase();
+    if (pathname.endsWith(".png")) {
+      return "image/png";
+    }
+    if (pathname.endsWith(".webp")) {
+      return "image/webp";
+    }
+    if (pathname.endsWith(".gif")) {
+      return "image/gif";
+    }
+    return "image/jpeg";
+  } catch {
+    return "image/jpeg";
+  }
 }
 
 function firstAvailableVideoSource(tweet) {
-  const video = tweet.media?.videos?.[0];
+  const video =
+    tweet.media?.all?.find((item) => item.type === "video" || item.type === "gif") ||
+    tweet.media?.videos?.[0];
   return video?.url ? video : null;
 }
 
 function renderPage(tweet, origin, pathValue) {
   const normalized = normalizeTweet(tweet, origin, false);
+  const title = getPageTitle(tweet);
   return `<!doctype html>
 <html lang="en">
 <head>
@@ -963,7 +1060,7 @@ function renderPage(tweet, origin, pathValue) {
 </head>
 <body>
   <main class="page-shell">
-    ${renderTweet(normalized)}
+    ${renderTweet(normalized, { title })}
   </main>
 </body>
 </html>`;

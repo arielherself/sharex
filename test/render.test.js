@@ -81,6 +81,8 @@ test("renders poll, translation, community note, external media, and ordered med
   assert.match(html, /translation-card/);
   assert.match(html, /community-note/);
   assert.match(html, /external-media/);
+  assert.match(html, /data-iv-post/);
+  assert.match(html, /class="iv-body"/);
   assert.match(html, /https:\/\/media\.example\.test\/video\.mp4/);
   assert.doesNotMatch(html, /pbs\.twimg\.com|video\.twimg\.com|twitter\.com|x\.com/);
 });

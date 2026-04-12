@@ -22,6 +22,12 @@ npm start
 npm test
 ```
 
+## Telegram Instant View
+
+Telegram Instant View requires a domain-specific template in Telegram's Instant View editor. This app emits stable `data-iv-*` attributes and an `.iv-body` section for that parser.
+
+Use [docs/telegram-instant-view.tpl](docs/telegram-instant-view.tpl) as the starting template for your deployed domain at `https://instantview.telegram.org/my/`.
+
 Optional environment variables:
 
 ```bash
