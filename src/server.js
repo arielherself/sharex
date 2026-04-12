@@ -1122,6 +1122,10 @@ function renderPage(tweet, origin, pathValue) {
   <meta name="viewport" content="width=device-width, initial-scale=1">
   ${renderMeta(tweet, origin, pathValue)}
   <link rel="stylesheet" href="/assets/styles.css">
+  <script>
+    window.va = window.va || function () { (window.vaq = window.vaq || []).push(arguments); };
+  </script>
+  <script defer src="/_vercel/insights/script.js"></script>
 </head>
 <body>
   <main class="page-shell">
@@ -1140,6 +1144,10 @@ function renderHome() {
   <title>ShareX Post Viewer</title>
   <meta name="description" content="View a public post as a clean shareable page.">
   <link rel="stylesheet" href="/assets/styles.css">
+  <script>
+    window.va = window.va || function () { (window.vaq = window.vaq || []).push(arguments); };
+  </script>
+  <script defer src="/_vercel/insights/script.js"></script>
 </head>
 <body>
   <main class="page-shell home">
@@ -1166,6 +1174,10 @@ function renderError(statusCode, message) {
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>${escapeHtml(statusCode)} ${escapeHtml(message)}</title>
   <link rel="stylesheet" href="/assets/styles.css">
+  <script>
+    window.va = window.va || function () { (window.vaq = window.vaq || []).push(arguments); };
+  </script>
+  <script defer src="/_vercel/insights/script.js"></script>
 </head>
 <body>
   <main class="page-shell">
