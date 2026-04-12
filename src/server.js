@@ -1185,7 +1185,7 @@ async function handleRequest(req, res) {
   return sendHtml(res, 200, renderPage(tweet, origin, pathname));
 }
 
-const server = http.createServer((req, res) => {
+function appHandler(req, res) {
   handleRequest(req, res).catch((error) => {
     const statusCode = error.statusCode || 500;
     const message = statusCode === 500 ? "Unexpected server error" : error.message;
@@ -1195,7 +1195,9 @@ const server = http.createServer((req, res) => {
     }
     sendHtml(res, statusCode, renderError(statusCode, message));
   });
-});
+}
+
+const server = http.createServer(appHandler);
 
 function startServer() {
   server.on("error", (error) => {
@@ -1215,11 +1217,12 @@ if (require.main === module) {
   startServer();
 }
 
-module.exports = {
-  normalizeTweet,
-  renderTweet,
-  renderPage,
-  renderMeta,
-  sanitizeExternalUrl,
-  startServer,
-};
+module.exports = appHandler;
+module.exports.default = appHandler;
+module.exports.server = server;
+module.exports.normalizeTweet = normalizeTweet;
+module.exports.renderTweet = renderTweet;
+module.exports.renderPage = renderPage;
+module.exports.renderMeta = renderMeta;
+module.exports.sanitizeExternalUrl = sanitizeExternalUrl;
+module.exports.startServer = startServer;
