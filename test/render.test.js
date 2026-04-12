@@ -178,6 +178,29 @@ test("keeps explicit non-media links in post text", () => {
   assert.doesNotMatch(html, /\[link\]/);
 });
 
+test("photo grids stay three-column without placeholder classes", () => {
+  const photo = (index) => ({
+    type: "photo",
+    url: `https://pbs.twimg.com/media/photo${index}.jpg`,
+    width: 100,
+    height: 100,
+  });
+
+  assert.match(
+    renderTweet(normalizeTweet(baseTweet({ media: { photos: [photo(1), photo(2)] } }), ORIGIN)),
+    /photo-grid photo-grid-thumbnails/
+  );
+  assert.doesNotMatch(
+    renderTweet(
+      normalizeTweet(
+        baseTweet({ media: { photos: [photo(1), photo(2), photo(3), photo(4)] } }),
+        ORIGIN
+      )
+    ),
+    /photo-remainder-/
+  );
+});
+
 test("photo grid css preserves full image aspect ratios", () => {
   const styles = require("node:fs").readFileSync(
     require("node:path").join(__dirname, "../public/styles.css"),
@@ -189,8 +212,10 @@ test("photo grid css preserves full image aspect ratios", () => {
   );
 
   assert.match(styles, /\.photo-tile img \{[^}]*height: auto;/s);
+  assert.match(styles, /\.photo-grid \{[^}]*background: transparent;/s);
   assert.match(styles, /\.photo-grid-thumbnails \{[^}]*grid-template-columns:\s*repeat\(3, minmax\(0, 1fr\)\);/s);
   assert.match(styles, /\.photo-grid-thumbnails \.photo-tile \{[^}]*aspect-ratio: 1 \/ 1;/s);
+  assert.doesNotMatch(styles, /photo-remainder-/);
   assert.match(styles, /\.photo-link \{[^}]*height: 100%;/s);
   assert.match(styles, /\.photo-grid-thumbnails \.photo-tile img \{[^}]*object-fit: contain;/s);
   assert.match(styles, /\.photo-overlay \{/);
