@@ -81,6 +81,7 @@ test("post pages load the photo overlay script", async () => {
     assert.match(res.body, /href="\/assets\/styles\.css\?v=[a-f0-9]{12}"/);
     assert.match(res.body, /src="\/assets\/app\.js\?v=[a-f0-9]{12}" defer/);
     assert.match(res.body, /<a class="site-title" href="\/">ShareX<\/a>/);
+    assert.match(res.body, /class="screenshot-button"[^>]*data-screenshot-target="article\[data-iv-post\]"/);
     assert.ok(res.body.indexOf("site-title") < res.body.indexOf("data-iv-post"));
   } finally {
     globalThis.fetch = originalFetch;
@@ -138,7 +139,7 @@ test("reply pages render fetched parent chain before the selected post", async (
     assert.match(res.body, /class="thread"/);
     assert.ok(res.body.indexOf("root post") < res.body.indexOf("parent reply"));
     assert.ok(res.body.indexOf("parent reply") < res.body.lastIndexOf("selected reply"));
-    assert.equal((res.body.match(/data-iv-post/g) || []).length, 1);
+    assert.equal((res.body.match(/\sdata-iv-post(?:\s|>)/g) || []).length, 1);
     assert.ok(res.body.indexOf("data-iv-post") < res.body.lastIndexOf("selected reply"));
   } finally {
     globalThis.fetch = originalFetch;
@@ -333,6 +334,13 @@ test("photo grid css preserves full image aspect ratios", () => {
   assert.match(styles, /\.photo-overlay-image \{[^}]*height: auto;/s);
   assert.match(styles, /\.photo-overlay-image \{[^}]*object-fit: contain;/s);
   assert.match(script, /closest\("a\.photo-link"\)/);
+  assert.match(script, /closest\("\.screenshot-button"\)/);
+  assert.match(script, /renderElementImage/);
+  assert.match(script, /await prepareScreenshotClone\(clone\)/);
+  assert.match(script, /blobToDataUrl/);
+  assert.match(script, /canvas\.toDataURL\("image\/png"\)/);
+  assert.match(styles, /\.screenshot-button,/);
+  assert.match(styles, /\.screenshot-download \{/);
   assert.match(script, /className = "photo-overlay"/);
   assert.match(styles, /\.video-download \{/);
   assert.doesNotMatch(styles, /\.photo-tile img \{[^}]*object-fit: cover;/s);

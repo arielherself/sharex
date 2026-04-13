@@ -82,6 +82,10 @@ a {
 }
 
 .site-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
   margin: 0 0 16px;
 }
 
@@ -90,6 +94,25 @@ a {
   font-size: 1.35rem;
   font-weight: 900;
   text-decoration: none;
+}
+
+.screenshot-button,
+.screenshot-download {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 8px 12px;
+  background: var(--panel);
+  color: var(--accent-strong);
+  font: inherit;
+  font-size: 0.94rem;
+  font-weight: 800;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.screenshot-button:disabled {
+  cursor: wait;
+  opacity: 0.72;
 }
 
 .home {
@@ -303,6 +326,14 @@ a {
   font: inherit;
   font-weight: 800;
   cursor: pointer;
+}
+
+.screenshot-download {
+  position: fixed;
+  right: 96px;
+  bottom: 16px;
+  background: var(--modal-button-bg);
+  color: var(--modal-button-ink);
 }
 
 .photo-overlay-open {
@@ -590,6 +621,11 @@ a {
 
   .post-card {
     padding: 18px;
+  }
+
+  .site-header {
+    align-items: flex-start;
+    flex-direction: column;
   }
 
   .resolver-row {

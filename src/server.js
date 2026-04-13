@@ -1252,6 +1252,7 @@ function renderPage(tweet, origin, pathValue, ancestors = []) {
   <main class="page-shell">
     <header class="site-header" aria-label="Site">
       <a class="site-title" href="/">${escapeHtml(SITE_NAME)}</a>
+      <button class="screenshot-button" type="button" data-screenshot-target="article[data-iv-post]">Screenshot</button>
     </header>
     ${renderThread(normalizedAncestors, normalized, title)}
   </main>
