@@ -105,6 +105,7 @@
 
     const button = screenshotSourceButton;
     button.disabled = true;
+    button.classList.add("is-rendering");
     const previousLabel = button.textContent;
     button.textContent = "Rendering...";
     if (themeButton) {
@@ -134,6 +135,7 @@
       return;
     } finally {
       button.disabled = false;
+      button.classList.remove("is-rendering");
       if (button.textContent === "Rendering...") {
         button.textContent = previousLabel;
       }
