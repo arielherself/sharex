@@ -732,7 +732,7 @@ a {
   border-radius: 8px;
   padding: 0 18px;
   background: var(--accent);
-  color: var(--button-ink);
+  color: var(--bg);
   font: inherit;
   font-weight: 800;
   cursor: pointer;
