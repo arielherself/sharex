@@ -30,14 +30,19 @@
     overlay.setAttribute("aria-label", "Photo preview");
 
     closeButton = document.createElement("button");
-    closeButton.className = "photo-overlay-close";
+    closeButton.className = "photo-overlay-close icon-button";
     closeButton.type = "button";
-    closeButton.textContent = "Close";
+    closeButton.textContent = "✕";
+    closeButton.setAttribute("aria-label", "Close screenshot");
+    closeButton.title = "Close screenshot";
     closeButton.addEventListener("click", closeOverlay);
 
     themeButton = document.createElement("button");
-    themeButton.className = "screenshot-theme-toggle";
+    themeButton.className = "screenshot-theme-toggle icon-button";
     themeButton.type = "button";
+    themeButton.textContent = "☀️";
+    themeButton.setAttribute("aria-label", "Switch screenshot theme");
+    themeButton.title = "Switch screenshot theme";
     themeButton.hidden = true;
     themeButton.addEventListener("click", toggleScreenshotTheme);
 
@@ -296,7 +301,8 @@
 
     const isDark = theme === THEME_DARK;
     themeButton.hidden = false;
-    themeButton.textContent = `Screenshot: ${isDark ? "Dark" : "Light"}`;
+    themeButton.textContent = isDark ? "🌙" : "☀️";
+    themeButton.title = `Screenshot theme: ${isDark ? "Dark" : "Light"}`;
     themeButton.setAttribute("aria-pressed", String(isDark));
   }
 
@@ -307,7 +313,8 @@
 
     themeButton.hidden = true;
     themeButton.disabled = false;
-    themeButton.textContent = "Screenshot: Light";
+    themeButton.textContent = "☀️";
+    themeButton.title = "Switch screenshot theme";
     themeButton.setAttribute("aria-pressed", "false");
   }
 

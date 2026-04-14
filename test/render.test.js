@@ -81,7 +81,7 @@ test("post pages load the photo overlay script", async () => {
     assert.match(res.body, /href="\/assets\/styles\.css\?v=[a-f0-9]{12}"/);
     assert.match(res.body, /src="\/assets\/app\.js\?v=[a-f0-9]{12}" defer/);
     assert.match(res.body, /<a class="site-title" href="\/">ShareX<\/a>/);
-    assert.match(res.body, /class="screenshot-button"[^>]*data-screenshot-target="article\[data-iv-post\]"/);
+    assert.match(res.body, /class="[^"]*\bscreenshot-button\b[^"]*"[^>]*data-screenshot-target="article\[data-iv-post\]"/);
     assert.match(res.body, /data-screenshot-filename="2040000000000000000\.png"/);
     assert.ok(res.body.indexOf("site-title") < res.body.indexOf("data-iv-post"));
   } finally {
