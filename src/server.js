@@ -555,9 +555,19 @@ function parseArticleInlineHtml(html, entityMap) {
         stack.push({ type: "entity", key: Number(key), offset });
       }
     } else if (closing && (tagName === "b" || tagName === "strong")) {
-      closeInlineRange(stack, (item) => item.type === "style" && item.style === "Bold", offset, inlineStyleRanges);
+      closeInlineRange(
+        stack,
+        (item) => item.type === "style" && item.style === "Bold",
+        offset,
+        inlineStyleRanges
+      );
     } else if (closing && (tagName === "i" || tagName === "em")) {
-      closeInlineRange(stack, (item) => item.type === "style" && item.style === "Italic", offset, inlineStyleRanges);
+      closeInlineRange(
+        stack,
+        (item) => item.type === "style" && item.style === "Italic",
+        offset,
+        inlineStyleRanges
+      );
     } else if (closing && tagName === "a") {
       closeInlineRange(stack, (item) => item.type === "entity", offset, entityRanges);
     }
@@ -602,7 +612,10 @@ function pushInlineRange(item, end, ranges) {
 }
 
 function extractHtmlAttribute(attrs, name) {
-  const pattern = new RegExp(`${name}\\s*=\\s*(?:"([^"]*)"|'([^']*)'|([^\\s>]+))`, "i");
+  const pattern = new RegExp(
+    `${name}\\s*=\\s*(?:"([^"]*)"|'([^']*)'|([^\\s>]+))`,
+    "i"
+  );
   const match = String(attrs || "").match(pattern);
   return decodeHtml(match?.[1] || match?.[2] || match?.[3] || "");
 }
