@@ -341,6 +341,10 @@ test("photo grid css preserves full image aspect ratios", () => {
   assert.match(script, /blobToDataUrl/);
   assert.match(script, /decodeCloneImages/);
   assert.match(script, /image\.decode\(\)/);
+  assert.match(script, /image\.complete/);
+  assert.match(script, /Promise\.race\(\[/);
+  assert.match(script, /IMAGE_DECODE_TIMEOUT_MS/);
+  assert.match(script, /fetchWithTimeout/);
   assert.match(script, /canvas\.toDataURL\("image\/png"\)/);
   assert.match(script, /new File\(\[blob\], filename/);
   assert.match(script, /navigator\.share\(\{/);

@@ -1,4 +1,8 @@
 (() => {
+  const IMAGE_FETCH_TIMEOUT_MS = 5000;
+  const IMAGE_DECODE_TIMEOUT_MS = 2000;
+  const CARD_IMAGE_TIMEOUT_MS = 5000;
+
   let overlay;
   let overlayImage;
   let closeButton;
@@ -154,8 +158,8 @@
         }
 
         try {
-          const response = await fetch(image.src);
-          if (!response.ok) {
+          const response = await fetchWithTimeout(image.src, IMAGE_FETCH_TIMEOUT_MS);
+          if (!response || !response.ok) {
             return;
           }
           image.src = await blobToDataUrl(await response.blob());
@@ -164,6 +168,28 @@
         }
       })
     );
+  }
+
+  async function fetchWithTimeout(url, timeoutMs) {
+    const controller = typeof AbortController === "function" ? new AbortController() : null;
+    let timeoutId;
+    const timeout = new Promise((resolve) => {
+      timeoutId = setTimeout(() => {
+        if (controller) {
+          controller.abort();
+        }
+        resolve(null);
+      }, timeoutMs);
+    });
+
+    try {
+      return await Promise.race([
+        fetch(url, controller ? { signal: controller.signal } : undefined),
+        timeout,
+      ]);
+    } finally {
+      clearTimeout(timeoutId);
+    }
   }
 
   function blobToDataUrl(blob) {
@@ -267,15 +293,38 @@
         if (!image.src) {
           return Promise.resolve();
         }
+        if (image.complete) {
+          return Promise.resolve();
+        }
         if (typeof image.decode === "function") {
-          return image.decode().catch(() => {});
+          return Promise.race([
+            image.decode().catch(() => {}),
+            wait(IMAGE_DECODE_TIMEOUT_MS),
+          ]);
         }
         return new Promise((resolve) => {
-          image.onload = () => resolve();
-          image.onerror = () => resolve();
+          const timeoutId = setTimeout(finish, IMAGE_DECODE_TIMEOUT_MS);
+          function finish() {
+            clearTimeout(timeoutId);
+            image.onload = null;
+            image.onerror = null;
+            resolve();
+          }
+          if (image.complete) {
+            finish();
+            return;
+          }
+          image.onload = finish;
+          image.onerror = finish;
         });
       })
     );
+  }
+
+  function wait(milliseconds) {
+    return new Promise((resolve) => {
+      setTimeout(resolve, milliseconds);
+    });
   }
 
   function collectStyles() {
@@ -297,8 +346,19 @@
   function loadImage(src) {
     return new Promise((resolve, reject) => {
       const image = new Image();
-      image.onload = () => resolve(image);
-      image.onerror = reject;
+      const timeoutId = setTimeout(() => {
+        image.onload = null;
+        image.onerror = null;
+        reject(new Error("Timed out while rendering screenshot."));
+      }, CARD_IMAGE_TIMEOUT_MS);
+      image.onload = () => {
+        clearTimeout(timeoutId);
+        resolve(image);
+      };
+      image.onerror = () => {
+        clearTimeout(timeoutId);
+        reject(new Error("Could not render screenshot."));
+      };
       image.src = src;
     });
   }
