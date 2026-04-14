@@ -162,7 +162,7 @@ a {
 .screenshot-button-floating {
   position: fixed;
   right: max(20px, env(safe-area-inset-right));
-  bottom: max(24px, env(safe-area-inset-bottom));
+  bottom: max(48px, env(safe-area-inset-bottom));
   z-index: 50;
   width: 52px;
   min-width: 52px;
@@ -768,7 +768,7 @@ a {
 
   .screenshot-button-floating {
     right: max(12px, env(safe-area-inset-right));
-    bottom: max(12px, env(safe-area-inset-bottom));
+    bottom: max(24px, env(safe-area-inset-bottom));
   }
 
 
