@@ -335,10 +335,12 @@ test("photo grid css preserves full image aspect ratios", () => {
   assert.match(styles, /\.photo-overlay-image \{[^}]*height: auto;/s);
   assert.match(styles, /\.photo-overlay-image \{[^}]*object-fit: contain;/s);
   assert.match(styles, /\.photo-overlay\.screenshot-overlay \.photo-overlay-image \{[^}]*border-radius: 0;/s);
+  assert.match(styles, /\[data-screenshot-render\]\.post-card \{[^}]*border-radius: 0;/s);
   assert.match(script, /closest\("a\.photo-link"\)/);
   assert.match(script, /closest\("\.screenshot-button"\)/);
   assert.match(script, /renderElementImage/);
   assert.match(script, /await prepareScreenshotClone\(clone\)/);
+  assert.match(script, /clone\.setAttribute\("data-screenshot-render", "true"\)/);
   assert.match(script, /blobToDataUrl/);
   assert.match(script, /decodeCloneImages/);
   assert.match(script, /image\.decode\(\)/);

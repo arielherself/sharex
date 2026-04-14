@@ -180,6 +180,8 @@
   }
 
   async function prepareScreenshotClone(clone) {
+    clone.setAttribute("data-screenshot-render", "true");
+
     clone.querySelectorAll("video").forEach((video) => {
       const poster = video.getAttribute("poster");
       const image = document.createElement("img");
