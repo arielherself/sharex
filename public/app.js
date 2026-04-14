@@ -2,7 +2,6 @@
   const IMAGE_FETCH_TIMEOUT_MS = 15000;
   const IMAGE_DECODE_TIMEOUT_MS = 5000;
   const CARD_IMAGE_TIMEOUT_MS = 10000;
-  const SCREENSHOT_EDGE_PADDING_PX = 2;
   const THEME_LIGHT = "light";
   const THEME_DARK = "dark";
 
@@ -141,8 +140,8 @@
 
   async function renderElementImage(target, filename, theme = THEME_LIGHT) {
     const rect = target.getBoundingClientRect();
-    const width = Math.ceil(rect.width) + SCREENSHOT_EDGE_PADDING_PX;
-    const height = Math.ceil(rect.height) + SCREENSHOT_EDGE_PADDING_PX;
+    const width = Math.ceil(rect.width);
+    const height = Math.ceil(rect.height);
     const clone = target.cloneNode(true);
     clone.dataset.theme = isTheme(theme) ? theme : THEME_LIGHT;
     await prepareScreenshotClone(clone);
