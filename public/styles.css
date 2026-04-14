@@ -23,8 +23,33 @@
   --error-line: rgba(193, 18, 31, 0.36);
 }
 
+:root[data-theme="dark"],
+[data-theme="dark"] {
+  --bg: #101414;
+  --panel: #181d1d;
+  --panel-soft: #141a1a;
+  --ink: #edf4f2;
+  --muted: #9aa8a5;
+  --line: #2f3a38;
+  --accent: #2dd4bf;
+  --accent-strong: #5eead4;
+  --danger: #fb7185;
+  --media-bg: #060808;
+  --avatar-bg: #25302e;
+  --shadow: rgba(0, 0, 0, 0.30);
+  --page-wash: rgba(45, 212, 191, 0.08);
+  --focus-ring: rgba(45, 212, 191, 0.45);
+  --focus-ring-soft: rgba(45, 212, 191, 0.24);
+  --overlay-bg: rgba(0, 0, 0, 0.92);
+  --button-ink: #061110;
+  --modal-button-bg: #edf4f2;
+  --modal-button-ink: #101414;
+  --modal-button-line: rgba(237, 244, 242, 0.48);
+  --error-line: rgba(251, 113, 133, 0.42);
+}
+
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root:not([data-theme]) {
     --bg: #101414;
     --panel: #181d1d;
     --panel-soft: #141a1a;
@@ -96,6 +121,15 @@ a {
   text-decoration: none;
 }
 
+
+.site-actions {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: flex-end;
+}
+
+.theme-toggle,
 .screenshot-button {
   border: 1px solid var(--line);
   border-radius: 8px;
@@ -108,6 +142,11 @@ a {
   text-decoration: none;
   cursor: pointer;
 }
+
+.theme-toggle {
+  min-width: 120px;
+}
+
 
 .screenshot-button:disabled {
   cursor: wait;
@@ -641,6 +680,11 @@ a {
   .site-header {
     align-items: flex-start;
     flex-direction: column;
+  }
+
+  .site-actions {
+    width: 100%;
+    justify-content: flex-start;
   }
 
   .resolver-row {
