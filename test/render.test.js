@@ -318,6 +318,26 @@ test("hydrates article content from profile articles when status API omits artic
       return { url: "https://x.com/i/article/2043107321568489473" };
     }
 
+    if (
+      parsed.hostname === "fxtwitter.com" &&
+      parsed.pathname === "/Evansantahp/article/2043108032058450336"
+    ) {
+      return new Response(
+        `<!doctype html><article>
+          <!-- Embed article (if applicable) -->
+          <img src="https://pbs.twimg.com/media/cover.jpg" alt="Recovered article" />
+          <p>Full article paragraph.</p>
+          <h2><b>Full article heading</b></h2>
+          <p>Full article <a href="https://example.com/context">link</a>.</p>
+          <hr/><!-- Embed media -->
+        </article>`,
+        {
+          status: 200,
+          headers: { "content-type": "text/html" },
+        }
+      );
+    }
+
     const statusId = parsed.pathname.split("/").at(-1);
     if (statusId === "2043108032058450336") {
       return new Response(
@@ -360,6 +380,11 @@ test("hydrates article content from profile articles when status API omits artic
                 id: "2043107321568489473",
                 title: "Recovered article",
                 preview_text: "Recovered preview",
+                cover_media: {
+                  media_info: {
+                    original_img_url: "https://pbs.twimg.com/media/cover.jpg",
+                  },
+                },
                 content: { blocks: [], entityMap: [] },
                 media_entities: [],
               },
@@ -384,6 +409,9 @@ test("hydrates article content from profile articles when status API omits artic
     const res = await renderRequest("/Evansantahp/status/2043108032058450336");
     assert.equal(res.statusCode, 200);
     assert.match(res.body, /Recovered article/);
+    assert.match(res.body, /Full article paragraph\./);
+    assert.match(res.body, /Full article heading/);
+    assert.match(res.body, /https:\/\/example\.com\/context/);
     assert.match(res.body, /article-body/);
     assert.doesNotMatch(res.body, /class="post-text"/);
   } finally {

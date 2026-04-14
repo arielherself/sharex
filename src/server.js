@@ -285,9 +285,10 @@ async function hydrateArticleFromLinkedPost(tweet) {
       allowArticleHydration: false,
     });
     if (articleTweet?.article) {
+      const article = await hydrateArticleContentFromInstantView(tweet, articleTweet.article);
       return {
         ...tweet,
-        article: articleTweet.article,
+        article,
       };
     }
   } catch {
@@ -307,7 +308,7 @@ async function hydrateArticleFromLinkedPost(tweet) {
 
 function extractXArticleStatusId(value) {
   const match = String(value || "").match(
-    /https?:\/\/(?:www\.)?x\.com\/i\/article\/([0-9]{5,25})(?:[/?#]\S*)?/i
+    /https?:\/\/(?:www\.)?(?:x|twitter)\.com\/i\/article\/([0-9]{5,25})(?:[/?#]\S*)?/i
   );
   return match?.[1] || "";
 }
@@ -356,7 +357,7 @@ async function fetchArticleFromProfileTimeline(tweet, articleStatusId) {
     });
 
     if (match?.article) {
-      return match.article;
+      return hydrateArticleContentFromInstantView(tweet, match.article);
     }
 
     const nextCursor = String(payload.cursor?.bottom || "");
@@ -367,6 +368,254 @@ async function fetchArticleFromProfileTimeline(tweet, articleStatusId) {
   }
 
   return null;
+}
+
+async function hydrateArticleContentFromInstantView(tweet, article) {
+  if (hasArticleContent(article)) {
+    return article;
+  }
+
+  const screenName = tweet.author?.screen_name || tweet.author?.screenName || "";
+  const tweetId = String(tweet.id || "");
+  if (!screenName || !tweetId) {
+    return article;
+  }
+
+  let html = "";
+  try {
+    const response = await fetch(
+      `https://fxtwitter.com/${encodeURIComponent(screenName)}/article/${encodeURIComponent(
+        tweetId
+      )}`,
+      {
+        headers: {
+          Accept: "text/html",
+          "User-Agent": "TelegramBot (like TwitterBot)",
+        },
+      }
+    );
+    if (!response.ok) {
+      return article;
+    }
+    html = await response.text();
+  } catch {
+    return article;
+  }
+
+  const parsed = parseInstantViewArticleContent(html, article);
+  if (!parsed.blocks.length) {
+    return article;
+  }
+
+  return {
+    ...article,
+    content: {
+      ...(article.content || {}),
+      blocks: parsed.blocks,
+      entityMap: parsed.entityMap,
+    },
+    media_entities: [...(article.media_entities || []), ...parsed.mediaEntities],
+  };
+}
+
+function hasArticleContent(article) {
+  return (article?.content?.blocks || []).some(
+    (block) => block?.type === "atomic" || compactText(block?.text || "")
+  );
+}
+
+function parseInstantViewArticleContent(html, article = {}) {
+  const fragment = extractInstantViewArticleFragment(html);
+  if (!fragment) {
+    return { blocks: [], entityMap: [], mediaEntities: [] };
+  }
+
+  const coverUrl = article.cover_media?.media_info?.original_img_url || "";
+  const blocks = [];
+  const entityMap = [];
+  const mediaEntities = [];
+  let fragmentHtml = fragment.replace(/<!--[\s\S]*?-->/g, "");
+
+  fragmentHtml = fragmentHtml.replace(/^\s*<img\b([^>]*)\/?>\s*/i, (match, attrs) => {
+    const src = extractHtmlAttribute(attrs, "src");
+    return src && (!coverUrl || src === coverUrl) ? "" : match;
+  });
+
+  const blockPattern = /<(p|h2)\b[^>]*>([\s\S]*?)<\/\1>|<img\b([^>]*)\/?>/gi;
+  let match;
+  while ((match = blockPattern.exec(fragmentHtml)) !== null) {
+    if (match[3] !== undefined) {
+      const src = sanitizeExternalUrl(extractHtmlAttribute(match[3], "src"));
+      if (!src) {
+        continue;
+      }
+      const mediaId = `iv-${mediaEntities.length}`;
+      const entityKey = String(entityMap.length);
+      mediaEntities.push({
+        media_id: mediaId,
+        media_info: {
+          original_img_url: src,
+          original_img_width: null,
+          original_img_height: null,
+        },
+      });
+      entityMap.push({
+        key: entityKey,
+        value: {
+          type: "MEDIA",
+          mutability: "Immutable",
+          data: {
+            mediaItems: [{ mediaId }],
+          },
+        },
+      });
+      blocks.push({
+        key: `iv${blocks.length}`,
+        text: "",
+        type: "atomic",
+        inlineStyleRanges: [],
+        entityRanges: [{ offset: 0, length: 1, key: Number(entityKey) }],
+        data: {},
+      });
+      continue;
+    }
+
+    const tagName = match[1].toLowerCase();
+    const inline = parseArticleInlineHtml(match[2], entityMap);
+    if (!compactText(inline.text)) {
+      continue;
+    }
+    blocks.push({
+      key: `iv${blocks.length}`,
+      text: inline.text,
+      type: tagName === "h2" ? "header-two" : "unstyled",
+      inlineStyleRanges: inline.inlineStyleRanges,
+      entityRanges: inline.entityRanges,
+      data: {},
+    });
+  }
+
+  return { blocks, entityMap, mediaEntities };
+}
+
+function extractInstantViewArticleFragment(html) {
+  const startMarker = "<!-- Embed article (if applicable) -->";
+  const endMarker = "<hr/><!-- Embed media";
+  const start = html.indexOf(startMarker);
+  if (start === -1) {
+    return "";
+  }
+  const contentStart = start + startMarker.length;
+  const end = html.indexOf(endMarker, contentStart);
+  return end === -1 ? html.slice(contentStart) : html.slice(contentStart, end);
+}
+
+function parseArticleInlineHtml(html, entityMap) {
+  const source = String(html || "")
+    .replace(/<br\s*\/?>/gi, "\n")
+    .replace(/<!--[\s\S]*?-->/g, "");
+  const textParts = [];
+  const inlineStyleRanges = [];
+  const entityRanges = [];
+  const stack = [];
+  const tagPattern = /<\/?([a-z][a-z0-9]*)\b([^>]*)>/gi;
+  let lastIndex = 0;
+  let match;
+
+  const textLength = () => textParts.join("").length;
+  const appendText = (value) => {
+    if (value) {
+      textParts.push(decodeHtml(value));
+    }
+  };
+
+  while ((match = tagPattern.exec(source)) !== null) {
+    appendText(source.slice(lastIndex, match.index));
+    const fullTag = match[0];
+    const tagName = match[1].toLowerCase();
+    const closing = fullTag.startsWith("</");
+    const offset = textLength();
+
+    if (!closing && (tagName === "b" || tagName === "strong")) {
+      stack.push({ type: "style", style: "Bold", offset });
+    } else if (!closing && (tagName === "i" || tagName === "em")) {
+      stack.push({ type: "style", style: "Italic", offset });
+    } else if (!closing && tagName === "a") {
+      const url = sanitizeExternalUrl(extractHtmlAttribute(match[2], "href"));
+      if (url) {
+        const key = String(entityMap.length);
+        entityMap.push({
+          key,
+          value: {
+            type: "LINK",
+            mutability: "Mutable",
+            data: { url },
+          },
+        });
+        stack.push({ type: "entity", key: Number(key), offset });
+      }
+    } else if (closing && (tagName === "b" || tagName === "strong")) {
+      closeInlineRange(stack, (item) => item.type === "style" && item.style === "Bold", offset, inlineStyleRanges);
+    } else if (closing && (tagName === "i" || tagName === "em")) {
+      closeInlineRange(stack, (item) => item.type === "style" && item.style === "Italic", offset, inlineStyleRanges);
+    } else if (closing && tagName === "a") {
+      closeInlineRange(stack, (item) => item.type === "entity", offset, entityRanges);
+    }
+
+    lastIndex = tagPattern.lastIndex;
+  }
+
+  appendText(source.slice(lastIndex));
+  const end = textLength();
+  while (stack.length) {
+    const item = stack.pop();
+    pushInlineRange(item, end, item.type === "entity" ? entityRanges : inlineStyleRanges);
+  }
+
+  return {
+    text: textParts.join("").trim(),
+    inlineStyleRanges,
+    entityRanges,
+  };
+}
+
+function closeInlineRange(stack, predicate, end, ranges) {
+  for (let index = stack.length - 1; index >= 0; index -= 1) {
+    if (predicate(stack[index])) {
+      const [item] = stack.splice(index, 1);
+      pushInlineRange(item, end, ranges);
+      return;
+    }
+  }
+}
+
+function pushInlineRange(item, end, ranges) {
+  const length = end - item.offset;
+  if (length <= 0) {
+    return;
+  }
+  if (item.type === "entity") {
+    ranges.push({ offset: item.offset, length, key: item.key });
+    return;
+  }
+  ranges.push({ offset: item.offset, length, style: item.style });
+}
+
+function extractHtmlAttribute(attrs, name) {
+  const pattern = new RegExp(`${name}\\s*=\\s*(?:"([^"]*)"|'([^']*)'|([^\\s>]+))`, "i");
+  const match = String(attrs || "").match(pattern);
+  return decodeHtml(match?.[1] || match?.[2] || match?.[3] || "");
+}
+
+function decodeHtml(value) {
+  return String(value || "")
+    .replace(/&#x([0-9a-f]+);/gi, (_, hex) => String.fromCodePoint(parseInt(hex, 16)))
+    .replace(/&#(\d+);/g, (_, decimal) => String.fromCodePoint(parseInt(decimal, 10)))
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;|&apos;/g, "'")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&amp;/g, "&");
 }
 
 async function expandShortUrlsInText(value) {
