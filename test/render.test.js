@@ -318,8 +318,8 @@ test("photo grid css preserves full image aspect ratios", () => {
   assert.match(styles, /\.photo-tile img \{[^}]*height: auto;/s);
   assert.match(styles, /color-scheme: light dark;/);
   assert.match(styles, /@media \(prefers-color-scheme: dark\)/);
-  assert.match(styles, /--bg: #101414;/);
-  assert.match(styles, /--panel: #181d1d;/);
+  assert.match(styles, /--bg: #000000;/);
+  assert.match(styles, /--panel: #16181c;/);
   assert.match(styles, /\.photo-grid \{[^}]*background: transparent;/s);
   assert.match(styles, /\.photo-grid-thumbnails \{[^}]*grid-template-columns:\s*repeat\(3, minmax\(0, 1fr\)\);/s);
   assert.match(styles, /\.photo-grid-thumbnails \.photo-tile \{[^}]*aspect-ratio: 1 \/ 1;/s);
