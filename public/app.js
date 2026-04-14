@@ -2,6 +2,8 @@
   let overlay;
   let overlayImage;
   let closeButton;
+  let shareButton;
+  let currentScreenshotFile;
 
   function ensureOverlay() {
     if (overlay) {
@@ -21,11 +23,18 @@
     closeButton.textContent = "Close";
     closeButton.addEventListener("click", closeOverlay);
 
+    shareButton = document.createElement("button");
+    shareButton.className = "screenshot-share";
+    shareButton.type = "button";
+    shareButton.textContent = "Share";
+    shareButton.hidden = true;
+    shareButton.addEventListener("click", shareScreenshot);
+
     overlayImage = document.createElement("img");
     overlayImage.className = "photo-overlay-image";
     overlayImage.decoding = "async";
 
-    overlay.append(closeButton, overlayImage);
+    overlay.append(closeButton, overlayImage, shareButton);
     overlay.addEventListener("click", (event) => {
       if (event.target === overlay) {
         closeOverlay();
@@ -37,6 +46,7 @@
 
   function openOverlay(link) {
     ensureOverlay();
+    clearScreenshotShare();
     const thumbnail = link.querySelector("img");
     overlayImage.src = link.href;
     overlayImage.alt = thumbnail?.alt || "Post photo";
@@ -56,13 +66,14 @@
     button.textContent = "Rendering...";
 
     try {
-      const dataUrl = await renderElementImage(target);
+      const screenshot = await renderElementImage(target, screenshotFilename(button, target));
       ensureOverlay();
-      overlayImage.src = dataUrl;
+      overlayImage.src = screenshot.dataUrl;
       overlayImage.alt = "Post image card";
+      setScreenshotShare(screenshot.file);
       overlay.hidden = false;
       document.body.classList.add("photo-overlay-open");
-      closeButton.focus();
+      (shareButton.hidden || shareButton.disabled ? closeButton : shareButton).focus();
     } catch {
       button.textContent = "Could not render";
       setTimeout(() => {
@@ -77,7 +88,7 @@
     }
   }
 
-  async function renderElementImage(target) {
+  async function renderElementImage(target, filename) {
     const rect = target.getBoundingClientRect();
     const width = Math.ceil(rect.width);
     const height = Math.ceil(rect.height);
@@ -103,7 +114,12 @@
     const context = canvas.getContext("2d");
     context.scale(scale, scale);
     context.drawImage(image, 0, 0, width, height);
-    return canvas.toDataURL("image/png");
+    const dataUrl = canvas.toDataURL("image/png");
+    const blob = dataUrlToBlob(dataUrl);
+    return {
+      dataUrl,
+      file: makeFile(blob, filename),
+    };
   }
 
   async function prepareScreenshotClone(clone) {
@@ -159,6 +175,92 @@
     });
   }
 
+  function dataUrlToBlob(dataUrl) {
+    const [header, payload] = dataUrl.split(",");
+    const mime = header.match(/^data:([^;]+)/)?.[1] || "application/octet-stream";
+    const binary = atob(payload || "");
+    const bytes = new Uint8Array(binary.length);
+    for (let index = 0; index < binary.length; index += 1) {
+      bytes[index] = binary.charCodeAt(index);
+    }
+    return new Blob([bytes], { type: mime });
+  }
+
+  function makeFile(blob, filename) {
+    try {
+      return new File([blob], filename, { type: blob.type || "image/png" });
+    } catch {
+      blob.name = filename;
+      return blob;
+    }
+  }
+
+  function screenshotFilename(button, target) {
+    const filename = button.dataset.screenshotFilename || target.dataset.postId || "post.png";
+    const basename = filename
+      .replace(/\.png$/i, "")
+      .replace(/[^A-Za-z0-9_-]/g, "") || "post";
+    return `${basename}.png`;
+  }
+
+  function setScreenshotShare(file) {
+    currentScreenshotFile = file;
+    shareButton.textContent = "Share";
+    shareButton.hidden = false;
+    shareButton.disabled = !canShareScreenshot(file);
+    shareButton.title = shareButton.disabled ? "Image sharing is not supported in this browser." : "";
+  }
+
+  function clearScreenshotShare() {
+    currentScreenshotFile = null;
+    if (!shareButton) {
+      return;
+    }
+    shareButton.hidden = true;
+    shareButton.disabled = false;
+    shareButton.textContent = "Share";
+    shareButton.removeAttribute("title");
+  }
+
+  function canShareScreenshot(file) {
+    if (!navigator.share || !file) {
+      return false;
+    }
+    if (navigator.canShare) {
+      return navigator.canShare({ files: [file] });
+    }
+    return true;
+  }
+
+  async function shareScreenshot() {
+    if (!currentScreenshotFile || !canShareScreenshot(currentScreenshotFile)) {
+      return;
+    }
+
+    const previousLabel = shareButton.textContent;
+    shareButton.disabled = true;
+    shareButton.textContent = "Sharing...";
+
+    try {
+      await navigator.share({
+        files: [currentScreenshotFile],
+        title: document.title || "Post screenshot",
+      });
+    } catch (error) {
+      if (error?.name !== "AbortError") {
+        shareButton.textContent = "Could not share";
+        setTimeout(() => {
+          shareButton.textContent = previousLabel;
+          shareButton.disabled = !canShareScreenshot(currentScreenshotFile);
+        }, 1600);
+        return;
+      }
+    }
+
+    shareButton.textContent = previousLabel;
+    shareButton.disabled = !canShareScreenshot(currentScreenshotFile);
+  }
+
   async function decodeCloneImages(clone) {
     await Promise.all(
       [...clone.querySelectorAll("img")].map((image) => {
@@ -208,6 +310,7 @@
 
     overlay.hidden = true;
     overlayImage.removeAttribute("src");
+    clearScreenshotShare();
     document.body.classList.remove("photo-overlay-open");
   }
 

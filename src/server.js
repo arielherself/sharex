@@ -725,6 +725,11 @@ function videoDownloadFilename(format, postId = "") {
   return `${basename}.${extension}`;
 }
 
+function screenshotFilename(postId = "") {
+  const basename = String(postId || "").replace(/[^A-Za-z0-9_-]/g, "") || "post";
+  return `${basename}.png`;
+}
+
 function mediaExtension(format) {
   const normalized = String(format || "").toLowerCase();
   if (normalized.includes("webm")) {
@@ -1252,7 +1257,7 @@ function renderPage(tweet, origin, pathValue, ancestors = []) {
   <main class="page-shell">
     <header class="site-header" aria-label="Site">
       <a class="site-title" href="/">${escapeHtml(SITE_NAME)}</a>
-      <button class="screenshot-button" type="button" data-screenshot-target="article[data-iv-post]">Screenshot</button>
+      <button class="screenshot-button" type="button" data-screenshot-target="article[data-iv-post]" data-screenshot-filename="${escapeAttr(screenshotFilename(normalized.id))}">Screenshot</button>
     </header>
     ${renderThread(normalizedAncestors, normalized, title)}
   </main>

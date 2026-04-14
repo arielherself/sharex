@@ -327,6 +327,30 @@ a {
   cursor: pointer;
 }
 
+.screenshot-share {
+  position: fixed;
+  right: 16px;
+  bottom: 16px;
+  min-height: 40px;
+  border: 1px solid var(--modal-button-line);
+  border-radius: 8px;
+  padding: 0 14px;
+  background: var(--modal-button-bg);
+  color: var(--modal-button-ink);
+  font: inherit;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.screenshot-share:disabled {
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+.screenshot-share[hidden] {
+  display: none;
+}
+
 .photo-overlay-open {
   overflow: hidden;
 }

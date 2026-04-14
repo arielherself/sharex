@@ -82,6 +82,7 @@ test("post pages load the photo overlay script", async () => {
     assert.match(res.body, /src="\/assets\/app\.js\?v=[a-f0-9]{12}" defer/);
     assert.match(res.body, /<a class="site-title" href="\/">ShareX<\/a>/);
     assert.match(res.body, /class="screenshot-button"[^>]*data-screenshot-target="article\[data-iv-post\]"/);
+    assert.match(res.body, /data-screenshot-filename="2040000000000000000\.png"/);
     assert.ok(res.body.indexOf("site-title") < res.body.indexOf("data-iv-post"));
   } finally {
     globalThis.fetch = originalFetch;
@@ -341,7 +342,12 @@ test("photo grid css preserves full image aspect ratios", () => {
   assert.match(script, /decodeCloneImages/);
   assert.match(script, /image\.decode\(\)/);
   assert.match(script, /canvas\.toDataURL\("image\/png"\)/);
+  assert.match(script, /new File\(\[blob\], filename/);
+  assert.match(script, /navigator\.share\(\{/);
+  assert.match(script, /files: \[currentScreenshotFile\]/);
+  assert.match(script, /navigator\.canShare\(\{ files: \[file\] \}\)/);
   assert.match(styles, /\.screenshot-button \{/);
+  assert.match(styles, /\.screenshot-share \{/);
   assert.doesNotMatch(styles, /screenshot-download/);
   assert.doesNotMatch(script, /screenshotDownload/);
   assert.match(script, /className = "photo-overlay"/);
