@@ -2,12 +2,19 @@
   const IMAGE_FETCH_TIMEOUT_MS = 15000;
   const IMAGE_DECODE_TIMEOUT_MS = 5000;
   const CARD_IMAGE_TIMEOUT_MS = 10000;
+  const THEME_LIGHT = "light";
+  const THEME_DARK = "dark";
+
 
   let overlay;
   let overlayImage;
   let closeButton;
   let shareButton;
+  let themeButton;
   let currentScreenshotFile;
+  let screenshotTheme = THEME_LIGHT;
+  let screenshotTarget = null;
+  let screenshotSourceButton = null;
 
   function ensureOverlay() {
     if (overlay) {
@@ -27,6 +34,12 @@
     closeButton.textContent = "Close";
     closeButton.addEventListener("click", closeOverlay);
 
+    themeButton = document.createElement("button");
+    themeButton.className = "screenshot-theme-toggle";
+    themeButton.type = "button";
+    themeButton.hidden = true;
+    themeButton.addEventListener("click", toggleScreenshotTheme);
+
     shareButton = document.createElement("button");
     shareButton.className = "screenshot-share";
     shareButton.type = "button";
@@ -38,7 +51,7 @@
     overlayImage.className = "photo-overlay-image";
     overlayImage.decoding = "async";
 
-    overlay.append(closeButton, overlayImage, shareButton);
+    overlay.append(closeButton, overlayImage, themeButton, shareButton);
     overlay.addEventListener("click", (event) => {
       if (event.target === overlay) {
         closeOverlay();
@@ -51,6 +64,9 @@
   function openOverlay(link) {
     ensureOverlay();
     clearScreenshotShare();
+    clearScreenshotThemeControl();
+    screenshotTarget = null;
+    screenshotSourceButton = null;
     const thumbnail = link.querySelector("img");
     overlayImage.src = link.href;
     overlayImage.alt = thumbnail?.alt || "Post photo";
@@ -65,15 +81,40 @@
       return;
     }
 
+    screenshotTarget = target;
+    screenshotSourceButton = button;
+    screenshotTheme = resolveSystemTheme();
+    await renderScreenshotPreview();
+  }
+
+  async function renderScreenshotPreview(theme = screenshotTheme) {
+    if (!screenshotTarget || !screenshotSourceButton) {
+      return;
+    }
+
+    screenshotTheme = isTheme(theme) ? theme : THEME_LIGHT;
+    ensureOverlay();
+    setScreenshotThemeControl(screenshotTheme);
+
+    const button = screenshotSourceButton;
     button.disabled = true;
     const previousLabel = button.textContent;
     button.textContent = "Rendering...";
+    if (themeButton) {
+      themeButton.disabled = true;
+    }
+    if (shareButton && !shareButton.hidden) {
+      shareButton.disabled = true;
+    }
 
     try {
-      const screenshot = await renderElementImage(target, screenshotFilename(button, target));
-      ensureOverlay();
+      const screenshot = await renderElementImage(
+        screenshotTarget,
+        screenshotFilename(button, screenshotTarget),
+        screenshotTheme
+      );
       overlayImage.src = screenshot.dataUrl;
-      overlayImage.alt = "Post image card";
+      overlayImage.alt = `Post image card (${screenshotTheme} theme)`;
       setScreenshotShare(screenshot.file);
       overlay.hidden = false;
       document.body.classList.add("photo-overlay-open");
@@ -89,14 +130,18 @@
       if (button.textContent === "Rendering...") {
         button.textContent = previousLabel;
       }
+      if (themeButton) {
+        themeButton.disabled = false;
+      }
     }
   }
 
-  async function renderElementImage(target, filename) {
+  async function renderElementImage(target, filename, theme = THEME_LIGHT) {
     const rect = target.getBoundingClientRect();
     const width = Math.ceil(rect.width);
     const height = Math.ceil(rect.height);
     const clone = target.cloneNode(true);
+    clone.dataset.theme = isTheme(theme) ? theme : THEME_LIGHT;
     await prepareScreenshotClone(clone);
     const styles = collectStyles();
     const xhtml = new XMLSerializer().serializeToString(clone);
@@ -232,6 +277,32 @@
       .replace(/\.png$/i, "")
       .replace(/[^A-Za-z0-9_-]/g, "") || "post";
     return `${basename}.png`;
+  }
+
+  function setScreenshotThemeControl(theme) {
+    if (!themeButton) {
+      return;
+    }
+
+    const isDark = theme === THEME_DARK;
+    themeButton.hidden = false;
+    themeButton.textContent = `Screenshot: ${isDark ? "Dark" : "Light"}`;
+    themeButton.setAttribute("aria-pressed", String(isDark));
+  }
+
+  function clearScreenshotThemeControl() {
+    if (!themeButton) {
+      return;
+    }
+
+    themeButton.hidden = true;
+    themeButton.disabled = false;
+    themeButton.textContent = "Screenshot: Light";
+    themeButton.setAttribute("aria-pressed", "false");
+  }
+
+  async function toggleScreenshotTheme() {
+    await renderScreenshotPreview(screenshotTheme === THEME_DARK ? THEME_LIGHT : THEME_DARK);
   }
 
   function setScreenshotShare(file) {
@@ -391,7 +462,21 @@
     overlay.hidden = true;
     overlayImage.removeAttribute("src");
     clearScreenshotShare();
+    clearScreenshotThemeControl();
+    screenshotTarget = null;
+    screenshotSourceButton = null;
     document.body.classList.remove("photo-overlay-open");
+  }
+
+  function resolveSystemTheme() {
+    if (typeof window.matchMedia === "function") {
+      return window.matchMedia("(prefers-color-scheme: dark)").matches ? THEME_DARK : THEME_LIGHT;
+    }
+    return THEME_LIGHT;
+  }
+
+  function isTheme(value) {
+    return value === THEME_LIGHT || value === THEME_DARK;
   }
 
   document.addEventListener("click", (event) => {
