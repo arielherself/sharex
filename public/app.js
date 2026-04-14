@@ -556,6 +556,21 @@
     return value === THEME_LIGHT || value === THEME_DARK;
   }
 
+  function localizePostTimestamps() {
+    const formatter = new Intl.DateTimeFormat(undefined, {
+      dateStyle: "medium",
+      timeStyle: "short",
+    });
+
+    document.querySelectorAll("time[data-local-timestamp]").forEach((timeElement) => {
+      const unixTimestamp = Number(timeElement.dataset.localTimestamp);
+      if (!Number.isFinite(unixTimestamp) || unixTimestamp <= 0) {
+        return;
+      }
+      timeElement.textContent = formatter.format(new Date(unixTimestamp * 1000));
+    });
+  }
+
   document.addEventListener("click", (event) => {
     const link = event.target.closest("a.photo-link");
     if (link) {
@@ -575,4 +590,6 @@
       closeOverlay();
     }
   });
+
+  localizePostTimestamps();
 })();

@@ -210,7 +210,6 @@ function formatDate(timestamp) {
   return new Intl.DateTimeFormat("en", {
     dateStyle: "medium",
     timeStyle: "short",
-    timeZone: "UTC",
   }).format(new Date(timestamp * 1000));
 }
 
@@ -1040,7 +1039,11 @@ function renderTweet(tweet, options = {}) {
         ${tweet.quote ? `<hr class="quote-separator">${renderTweet(tweet.quote, { quote: true })}` : ""}
 
         <footer class="post-footer">
-          ${dateLabel ? `<time datetime="${escapeAttr(tweet.createdAt)}">${escapeHtml(dateLabel)} UTC</time>` : ""}
+          ${
+            dateLabel
+              ? `<time datetime="${escapeAttr(tweet.createdAt)}" data-local-timestamp="${escapeAttr(tweet.createdTimestamp || "")}">${escapeHtml(dateLabel)}</time>`
+              : ""
+          }
           <div class="counts" aria-label="Post engagement">
             <span>${formatCount(tweet.counts.replies)} replies</span>
             <span>${formatCount(tweet.counts.retweets)} reposts</span>
