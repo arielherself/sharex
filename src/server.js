@@ -12,6 +12,7 @@ const APP_USER_AGENT =
   process.env.APP_USER_AGENT ||
   "ShareXPostPages/0.1 (+https://example.invalid; contact required)";
 const MAX_THREAD_DEPTH = 12;
+const SHORT_URL_CACHE = new Map();
 const TOKEN_SECRET =
   process.env.MEDIA_TOKEN_SECRET ||
   "development-only-secret-change-MEDIA_TOKEN_SECRET";
@@ -259,7 +260,51 @@ async function fetchTweet(screenName, statusId) {
     throw new HttpError(code === 404 ? 404 : code === 401 ? 403 : 502, message);
   }
 
+  payload.tweet.raw_text = payload.tweet.raw_text || {};
+  payload.tweet.raw_text.text = await expandShortUrlsInText(payload.tweet.raw_text.text || "");
+
   return payload.tweet;
+}
+
+async function expandShortUrlsInText(value) {
+  const text = String(value || "");
+  const urls = Array.from(new Set(text.match(/https?:\/\/[^\s]+/gi) || []));
+  if (!urls.length) {
+    return text;
+  }
+
+  let expanded = text;
+  for (const url of urls) {
+    const resolved = await resolveShortUrl(url);
+    if (resolved && resolved !== url) {
+      expanded = expanded.split(url).join(resolved);
+    }
+  }
+  return expanded;
+}
+
+async function resolveShortUrl(url) {
+  if (!/https?:\/\/t\.co\//i.test(url)) {
+    return url;
+  }
+  if (SHORT_URL_CACHE.has(url)) {
+    return SHORT_URL_CACHE.get(url);
+  }
+
+  try {
+    const response = await fetch(url, {
+      redirect: "follow",
+      headers: {
+        "User-Agent": APP_USER_AGENT,
+      },
+    });
+    const resolved = response.url || url;
+    SHORT_URL_CACHE.set(url, resolved);
+    return resolved;
+  } catch {
+    SHORT_URL_CACHE.set(url, url);
+    return url;
+  }
 }
 
 async function fetchThread(screenName, statusId) {
@@ -331,6 +376,8 @@ function getReplyParentScreenName(tweet) {
 function normalizeTweet(tweet, origin, absoluteMedia = false, depth = 0) {
   const media = tweet.media || {};
   const tweetId = String(tweet.id || "");
+  const normalizedText = compactText(stripXUrls(tweet.text || ""));
+  const normalizedRawText = compactText(stripXUrls(tweet.raw_text?.text || ""));
   const photos = (media.photos || []).map((photo) =>
     normalizePhoto(photo, origin, absoluteMedia)
   );
@@ -342,7 +389,7 @@ function normalizeTweet(tweet, origin, absoluteMedia = false, depth = 0) {
     : null;
   return {
     id: tweetId,
-    text: stripXUrls(tweet.text || ""),
+    text: normalizedText || normalizedRawText,
     author: {
       name: tweet.author?.name || "Unknown",
       screenName: tweet.author?.screen_name || "",
@@ -1580,3 +1627,4 @@ module.exports.renderTweet = renderTweet;
 module.exports.renderMeta = renderMeta;
 module.exports.selectVideoSource = selectVideoSource;
 module.exports.sanitizeExternalUrl = sanitizeExternalUrl;
+module.exports.expandShortUrlsInText = expandShortUrlsInText;
