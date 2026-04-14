@@ -236,7 +236,8 @@ function formatDate(timestamp) {
   }).format(new Date(timestamp * 1000));
 }
 
-async function fetchTweet(screenName, statusId) {
+async function fetchTweet(screenName, statusId, options = {}) {
+  const allowArticleHydration = options.allowArticleHydration !== false;
   const apiUrl = `https://api.fxtwitter.com/${encodeURIComponent(
     screenName
   )}/status/${encodeURIComponent(statusId)}`;
@@ -262,8 +263,45 @@ async function fetchTweet(screenName, statusId) {
 
   payload.tweet.raw_text = payload.tweet.raw_text || {};
   payload.tweet.raw_text.text = await expandShortUrlsInText(payload.tweet.raw_text.text || "");
+  if (allowArticleHydration) {
+    payload.tweet = await hydrateArticleFromLinkedPost(payload.tweet);
+  }
 
   return payload.tweet;
+}
+
+async function hydrateArticleFromLinkedPost(tweet) {
+  if (!tweet || tweet.article) {
+    return tweet;
+  }
+
+  const articleStatusId = extractXArticleStatusId(tweet.raw_text?.text || tweet.text || "");
+  if (!articleStatusId || String(tweet.id || "") === articleStatusId) {
+    return tweet;
+  }
+
+  try {
+    const articleTweet = await fetchTweet("i", articleStatusId, {
+      allowArticleHydration: false,
+    });
+    if (articleTweet?.article) {
+      return {
+        ...tweet,
+        article: articleTweet.article,
+      };
+    }
+  } catch {
+    return tweet;
+  }
+
+  return tweet;
+}
+
+function extractXArticleStatusId(value) {
+  const match = String(value || "").match(
+    /https?:\/\/(?:www\.)?x\.com\/i\/article\/([0-9]{5,25})(?:[/?#]\S*)?/i
+  );
+  return match?.[1] || "";
 }
 
 async function expandShortUrlsInText(value) {
