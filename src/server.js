@@ -1258,7 +1258,6 @@ function renderPage(tweet, origin, pathValue, ancestors = []) {
     <header class="site-header" aria-label="Site">
       <a class="site-title" href="/">${escapeHtml(SITE_NAME)}</a>
       <div class="site-actions">
-        <button class="theme-toggle" type="button" aria-pressed="false" aria-label="Toggle color theme" data-theme-toggle>Theme: Light</button>
         <button class="screenshot-button" type="button" data-screenshot-target="article[data-iv-post]" data-screenshot-filename="${escapeAttr(screenshotFilename(normalized.id))}">Screenshot</button>
       </div>
     </header>
