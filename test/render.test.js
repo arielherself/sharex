@@ -8,6 +8,7 @@ const {
   renderMeta,
   selectVideoSource,
   sanitizeExternalUrl,
+  expandShortUrlsInText,
 } = appHandler;
 
 const ORIGIN = "https://sharex.test";
@@ -280,6 +281,33 @@ test("keeps explicit non-media links in post text", () => {
   assert.match(html, /https:\/\/example\.com\/post/);
   assert.match(html, /https:\/\/t\.co\/abc123/);
   assert.doesNotMatch(html, /\[link\]/);
+});
+
+test("falls back to raw text when tweet text is empty", () => {
+  const tweet = baseTweet({
+    text: "",
+    raw_text: {
+      text: "https://t.co/abc123",
+    },
+  });
+
+  const html = renderTweet(normalizeTweet(tweet, ORIGIN));
+  assert.doesNotMatch(html, /No text content\./);
+  assert.match(html, /https:\/\/t\.co\/abc123/);
+});
+
+test("expands t.co links in raw text to their destination", async () => {
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async () => ({
+    url: "https://x.com/i/article/2043107321568489473",
+  });
+
+  try {
+    const expanded = await expandShortUrlsInText("https://t.co/AUSpCHSili");
+    assert.equal(expanded, "https://x.com/i/article/2043107321568489473");
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
 });
 
 test("renders @mentions in post text as x.com profile links", () => {
