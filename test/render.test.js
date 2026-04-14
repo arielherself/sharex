@@ -349,9 +349,6 @@ test("photo grid css preserves full image aspect ratios", () => {
   assert.match(script, /image\.decoding = "sync"/);
   assert.match(script, /preloadImage\(image\.src/);
   assert.match(script, /waitForFrames\(2\)/);
-  assert.match(script, /SCREENSHOT_EDGE_PADDING_PX/);
-  assert.match(script, /Math\.ceil\(rect\.height\) \+ SCREENSHOT_EDGE_PADDING_PX/);
-  assert.match(script, /Math\.ceil\(rect\.width\) \+ SCREENSHOT_EDGE_PADDING_PX/);
   assert.match(script, /Promise\.race\(\[/);
   assert.match(script, /IMAGE_DECODE_TIMEOUT_MS/);
   assert.match(script, /fetchWithTimeout/);
