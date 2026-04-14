@@ -2,6 +2,10 @@
   const IMAGE_FETCH_TIMEOUT_MS = 15000;
   const IMAGE_DECODE_TIMEOUT_MS = 5000;
   const CARD_IMAGE_TIMEOUT_MS = 10000;
+  const THEME_STORAGE_KEY = "sharex-theme";
+  const THEME_LIGHT = "light";
+  const THEME_DARK = "dark";
+
 
   let overlay;
   let overlayImage;
@@ -383,6 +387,64 @@
     });
   }
 
+  function resolveSystemTheme() {
+    if (typeof window.matchMedia === "function") {
+      return window.matchMedia("(prefers-color-scheme: dark)").matches ? THEME_DARK : THEME_LIGHT;
+    }
+    return THEME_LIGHT;
+  }
+
+  function isTheme(value) {
+    return value === THEME_LIGHT || value === THEME_DARK;
+  }
+
+  function currentTheme() {
+    return document.documentElement.dataset.theme === THEME_DARK ? THEME_DARK : THEME_LIGHT;
+  }
+
+  function applyTheme(theme, persist = false) {
+    const nextTheme = isTheme(theme) ? theme : THEME_LIGHT;
+    document.documentElement.dataset.theme = nextTheme;
+
+    const post = document.querySelector("article[data-iv-post]");
+    if (post) {
+      post.dataset.theme = nextTheme;
+    }
+
+    const toggle = document.querySelector("[data-theme-toggle]");
+    if (toggle) {
+      const isDark = nextTheme === THEME_DARK;
+      toggle.textContent = `Theme: ${isDark ? "Dark" : "Light"}`;
+      toggle.setAttribute("aria-pressed", String(isDark));
+    }
+
+    if (persist) {
+      try {
+        localStorage.setItem(THEME_STORAGE_KEY, nextTheme);
+      } catch {
+        // Ignore storage failures (private mode, strict privacy settings).
+      }
+    }
+  }
+
+  function initializeTheme() {
+    let savedTheme;
+    try {
+      savedTheme = localStorage.getItem(THEME_STORAGE_KEY);
+    } catch {
+      savedTheme = null;
+    }
+
+    applyTheme(isTheme(savedTheme) ? savedTheme : resolveSystemTheme());
+
+    const toggle = document.querySelector("[data-theme-toggle]");
+    if (toggle) {
+      toggle.addEventListener("click", () => {
+        applyTheme(currentTheme() === THEME_DARK ? THEME_LIGHT : THEME_DARK, true);
+      });
+    }
+  }
+
   function closeOverlay() {
     if (!overlay || overlay.hidden) {
       return;
@@ -393,6 +455,8 @@
     clearScreenshotShare();
     document.body.classList.remove("photo-overlay-open");
   }
+
+  initializeTheme();
 
   document.addEventListener("click", (event) => {
     const link = event.target.closest("a.photo-link");
