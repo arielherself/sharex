@@ -161,14 +161,16 @@ a {
 
 .screenshot-button-floating {
   position: fixed;
-  right: max(16px, env(safe-area-inset-right));
-  bottom: max(16px, env(safe-area-inset-bottom));
+  right: max(20px, env(safe-area-inset-right));
+  bottom: max(24px, env(safe-area-inset-bottom));
   z-index: 50;
-  width: 52px;
+  min-width: 52px;
   height: 52px;
+  padding: 0 14px;
   border-radius: 999px;
   box-shadow: 0 10px 30px var(--shadow);
   background: var(--panel-soft);
+  white-space: nowrap;
 }
 
 .screenshot-button-floating:hover {
@@ -769,5 +771,14 @@ a {
 
   .resolver-row button {
     width: 100%;
+  }
+}
+
+@media (min-width: 621px) {
+  .screenshot-button-floating {
+    right: max(
+      20px,
+      calc((100vw - min(calc(100vw - 32px), 760px)) / 2 - 64px)
+    );
   }
 }
