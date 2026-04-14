@@ -369,6 +369,11 @@ a {
   background: var(--media-bg);
 }
 
+
+.photo-overlay.screenshot-overlay .photo-overlay-image {
+  border-radius: 0;
+}
+
 .photo-overlay-close {
   position: fixed;
   top: 16px;

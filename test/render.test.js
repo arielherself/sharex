@@ -334,6 +334,7 @@ test("photo grid css preserves full image aspect ratios", () => {
   assert.match(styles, /\.photo-overlay-image \{[^}]*width: auto;/s);
   assert.match(styles, /\.photo-overlay-image \{[^}]*height: auto;/s);
   assert.match(styles, /\.photo-overlay-image \{[^}]*object-fit: contain;/s);
+  assert.match(styles, /\.photo-overlay\.screenshot-overlay \.photo-overlay-image \{[^}]*border-radius: 0;/s);
   assert.match(script, /closest\("a\.photo-link"\)/);
   assert.match(script, /closest\("\.screenshot-button"\)/);
   assert.match(script, /renderElementImage/);
@@ -360,6 +361,8 @@ test("photo grid css preserves full image aspect ratios", () => {
   assert.doesNotMatch(styles, /screenshot-download/);
   assert.doesNotMatch(script, /screenshotDownload/);
   assert.match(script, /className = "photo-overlay"/);
+  assert.match(script, /classList\.add\("screenshot-overlay"\)/);
+  assert.match(script, /classList\.remove\("screenshot-overlay"\)/);
   assert.match(styles, /\.video-download \{/);
   assert.doesNotMatch(styles, /\.photo-tile img \{[^}]*object-fit: cover;/s);
 });

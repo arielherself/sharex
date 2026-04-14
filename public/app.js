@@ -63,6 +63,7 @@
 
   function openOverlay(link) {
     ensureOverlay();
+    overlay.classList.remove("screenshot-overlay");
     clearScreenshotShare();
     clearScreenshotThemeControl();
     screenshotTarget = null;
@@ -94,6 +95,7 @@
 
     screenshotTheme = isTheme(theme) ? theme : THEME_LIGHT;
     ensureOverlay();
+    overlay.classList.add("screenshot-overlay");
     setScreenshotThemeControl(screenshotTheme);
 
     const button = screenshotSourceButton;
@@ -528,6 +530,7 @@
     clearScreenshotThemeControl();
     screenshotTarget = null;
     screenshotSourceButton = null;
+    overlay.classList.remove("screenshot-overlay");
     document.body.classList.remove("photo-overlay-open");
   }
 
