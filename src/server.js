@@ -291,7 +291,15 @@ async function hydrateArticleFromLinkedPost(tweet) {
       };
     }
   } catch {
-    return tweet;
+    // Article URLs are not always fetchable as status URLs; try the profile articles API below.
+  }
+
+  const profileArticle = await fetchArticleFromProfileTimeline(tweet, articleStatusId);
+  if (profileArticle) {
+    return {
+      ...tweet,
+      article: profileArticle,
+    };
   }
 
   return tweet;
@@ -302,6 +310,63 @@ function extractXArticleStatusId(value) {
     /https?:\/\/(?:www\.)?x\.com\/i\/article\/([0-9]{5,25})(?:[/?#]\S*)?/i
   );
   return match?.[1] || "";
+}
+
+async function fetchArticleFromProfileTimeline(tweet, articleStatusId) {
+  const screenName = tweet.author?.screen_name || tweet.author?.screenName || "";
+  const tweetId = String(tweet.id || "");
+  if (!screenName || (!tweetId && !articleStatusId)) {
+    return null;
+  }
+
+  let cursor = "";
+  for (let page = 0; page < 4; page += 1) {
+    const params = new URLSearchParams({ count: "20" });
+    if (cursor) {
+      params.set("cursor", cursor);
+    }
+
+    const apiUrl = `https://api.fxtwitter.com/2/profile/${encodeURIComponent(
+      screenName
+    )}/articles?${params.toString()}`;
+
+    let payload;
+    try {
+      const response = await fetch(apiUrl, {
+        headers: {
+          Accept: "application/json",
+          "User-Agent": APP_USER_AGENT,
+        },
+      });
+      payload = await response.json();
+      if (!response.ok || payload.code !== 200 || !Array.isArray(payload.results)) {
+        return null;
+      }
+    } catch {
+      return null;
+    }
+
+    const match = payload.results.find((item) => {
+      const itemId = String(item?.id || "");
+      const itemArticleId = String(item?.article?.id || "");
+      return (
+        (tweetId && itemId === tweetId) ||
+        (articleStatusId && itemArticleId === articleStatusId)
+      );
+    });
+
+    if (match?.article) {
+      return match.article;
+    }
+
+    const nextCursor = String(payload.cursor?.bottom || "");
+    if (!nextCursor || nextCursor === cursor) {
+      break;
+    }
+    cursor = nextCursor;
+  }
+
+  return null;
 }
 
 async function expandShortUrlsInText(value) {
@@ -416,6 +481,8 @@ function normalizeTweet(tweet, origin, absoluteMedia = false, depth = 0) {
   const tweetId = String(tweet.id || "");
   const normalizedText = compactText(stripXUrls(tweet.text || ""));
   const normalizedRawText = compactText(stripXUrls(tweet.raw_text?.text || ""));
+  const article = tweet.article ? normalizeArticle(tweet.article, origin, absoluteMedia) : null;
+  const displayText = normalizedText || normalizedRawText;
   const photos = (media.photos || []).map((photo) =>
     normalizePhoto(photo, origin, absoluteMedia)
   );
@@ -427,7 +494,7 @@ function normalizeTweet(tweet, origin, absoluteMedia = false, depth = 0) {
     : null;
   return {
     id: tweetId,
-    text: normalizedText || normalizedRawText,
+    text: article && isArticleOnlyText(displayText) ? "" : displayText,
     author: {
       name: tweet.author?.name || "Unknown",
       screenName: tweet.author?.screen_name || "",
@@ -484,12 +551,20 @@ function normalizeTweet(tweet, origin, absoluteMedia = false, depth = 0) {
           timeLeft: tweet.poll.time_left_en || "",
         }
       : null,
-    article: tweet.article ? normalizeArticle(tweet.article, origin, absoluteMedia) : null,
+    article,
     quote:
       tweet.quote && depth < 1
         ? normalizeTweet(tweet.quote, origin, absoluteMedia, depth + 1)
         : null,
   };
+}
+
+function isArticleOnlyText(value) {
+  const text = compactText(value);
+  return (
+    /^https?:\/\/(?:www\.)?(?:x|twitter)\.com\/i\/article\/[0-9]{5,25}(?:[/?#]\S*)?$/i.test(text) ||
+    /^https?:\/\/t\.co\/[A-Za-z0-9]+\/?$/i.test(text)
+  );
 }
 
 function buildOriginalPostUrl(tweet) {

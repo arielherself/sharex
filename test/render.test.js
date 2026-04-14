@@ -310,7 +310,7 @@ test("expands t.co links in raw text to their destination", async () => {
   }
 });
 
-test("hydrates article content from linked x.com/i/article URL when API omits article payload", async () => {
+test("hydrates article content from profile articles when status API omits article payload", async () => {
   const originalFetch = globalThis.fetch;
   globalThis.fetch = async (url) => {
     const parsed = new URL(url);
@@ -327,6 +327,11 @@ test("hydrates article content from linked x.com/i/article URL when API omits ar
             id: "2043108032058450336",
             text: "https://x.com/i/article/2043107321568489473",
             raw_text: { text: "https://t.co/AUSpCHSili" },
+            author: {
+              name: "Evan",
+              screen_name: "Evansantahp",
+              avatar_url: "https://pbs.twimg.com/profile_images/avatar.jpg",
+            },
             article: null,
           }),
         }),
@@ -338,19 +343,29 @@ test("hydrates article content from linked x.com/i/article URL when API omits ar
     }
 
     if (statusId === "2043107321568489473") {
+      return new Response(JSON.stringify({ code: 404, message: "NOT_FOUND", tweet: null }), {
+        status: 404,
+        headers: { "content-type": "application/json" },
+      });
+    }
+
+    if (parsed.pathname === "/2/profile/Evansantahp/articles") {
       return new Response(
         JSON.stringify({
           code: 200,
-          tweet: baseTweet({
-            id: "2043107321568489473",
-            text: "",
-            article: {
-              title: "Recovered article",
-              preview_text: "Recovered preview",
-              content: { blocks: [], entityMap: [] },
-              media_entities: [],
+          results: [
+            {
+              id: "2043108032058450336",
+              article: {
+                id: "2043107321568489473",
+                title: "Recovered article",
+                preview_text: "Recovered preview",
+                content: { blocks: [], entityMap: [] },
+                media_entities: [],
+              },
             },
-          }),
+          ],
+          cursor: {},
         }),
         {
           status: 200,
@@ -370,6 +385,7 @@ test("hydrates article content from linked x.com/i/article URL when API omits ar
     assert.equal(res.statusCode, 200);
     assert.match(res.body, /Recovered article/);
     assert.match(res.body, /article-body/);
+    assert.doesNotMatch(res.body, /class="post-text"/);
   } finally {
     globalThis.fetch = originalFetch;
   }
