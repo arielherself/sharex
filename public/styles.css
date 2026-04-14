@@ -178,6 +178,7 @@ a {
 .post-card,
 .quote-post {
   background: var(--panel);
+  color: var(--ink);
   border: 1px solid var(--line);
   border-radius: 8px;
   box-shadow: 0 18px 50px var(--shadow);
@@ -283,6 +284,7 @@ a {
 
 .post-text {
   margin: 16px 0 0;
+  color: var(--ink);
   font-size: 1.15rem;
   line-height: 1.6;
   white-space: pre-wrap;
