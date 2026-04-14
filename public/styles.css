@@ -195,6 +195,7 @@ a {
 }
 
 [data-screenshot-render].post-card {
+  border: 0;
   border-radius: 0;
 }
 
