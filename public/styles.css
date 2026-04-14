@@ -301,6 +301,12 @@ a {
   overflow-wrap: anywhere;
 }
 
+.display-name a,
+.handle a,
+.quote-author a {
+  text-decoration: none;
+}
+
 .handle,
 .muted,
 .post-footer {
