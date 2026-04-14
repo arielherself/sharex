@@ -1258,7 +1258,7 @@ function renderPage(tweet, origin, pathValue, ancestors = []) {
     <header class="site-header" aria-label="Site">
       <a class="site-title" href="/">${escapeHtml(SITE_NAME)}</a>
       <div class="site-actions">
-        <button class="screenshot-button screenshot-button-floating icon-button" type="button" aria-label="Take screenshot" title="Take screenshot" data-screenshot-target="article[data-iv-post]" data-screenshot-filename="${escapeAttr(screenshotFilename(normalized.id))}">📸</button>
+        <button class="screenshot-button screenshot-button-floating icon-button" type="button" aria-label="Take screenshot" title="Take screenshot" data-screenshot-target=".thread, article[data-iv-post]" data-screenshot-filename="${escapeAttr(screenshotFilename(normalized.id))}">📸</button>
       </div>
     </header>
     ${renderThread(normalizedAncestors, normalized, title)}
