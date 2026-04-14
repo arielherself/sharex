@@ -1,7 +1,7 @@
 (() => {
-  const IMAGE_FETCH_TIMEOUT_MS = 5000;
-  const IMAGE_DECODE_TIMEOUT_MS = 2000;
-  const CARD_IMAGE_TIMEOUT_MS = 5000;
+  const IMAGE_FETCH_TIMEOUT_MS = 15000;
+  const IMAGE_DECODE_TIMEOUT_MS = 5000;
+  const CARD_IMAGE_TIMEOUT_MS = 10000;
 
   let overlay;
   let overlayImage;
@@ -111,6 +111,7 @@
       </svg>`;
     const svgUrl = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
     const image = await loadImage(svgUrl);
+    await waitForFrames(2);
     const scale = Math.min(window.devicePixelRatio || 1, 2);
     const canvas = document.createElement("canvas");
     canvas.width = Math.max(1, Math.round(width * scale));
@@ -143,6 +144,10 @@
       if (src) {
         image.src = new URL(src, window.location.href).href;
       }
+      image.loading = "eager";
+      image.decoding = "sync";
+      image.removeAttribute("srcset");
+      image.removeAttribute("sizes");
     });
 
     clone.querySelectorAll(".video-download").forEach((element) => element.remove());
@@ -293,32 +298,47 @@
         if (!image.src) {
           return Promise.resolve();
         }
-        if (image.complete) {
-          return Promise.resolve();
-        }
-        if (typeof image.decode === "function") {
-          return Promise.race([
-            image.decode().catch(() => {}),
-            wait(IMAGE_DECODE_TIMEOUT_MS),
-          ]);
-        }
-        return new Promise((resolve) => {
-          const timeoutId = setTimeout(finish, IMAGE_DECODE_TIMEOUT_MS);
-          function finish() {
-            clearTimeout(timeoutId);
-            image.onload = null;
-            image.onerror = null;
-            resolve();
-          }
-          if (image.complete) {
-            finish();
-            return;
-          }
-          image.onload = finish;
-          image.onerror = finish;
-        });
+        return preloadImage(image.src, IMAGE_DECODE_TIMEOUT_MS);
       })
     );
+  }
+
+  function preloadImage(src, timeoutMs) {
+    return new Promise((resolve) => {
+      const image = new Image();
+      image.decoding = "sync";
+      const timeoutId = setTimeout(finish, timeoutMs);
+      function finish() {
+        clearTimeout(timeoutId);
+        image.onload = null;
+        image.onerror = null;
+        resolve();
+      }
+      image.onload = () => {
+        if (typeof image.decode === "function") {
+          Promise.race([image.decode().catch(() => {}), wait(timeoutMs)]).then(finish);
+          return;
+        }
+        finish();
+      };
+      image.onerror = finish;
+      image.src = src;
+      if (image.complete) {
+        finish();
+      }
+    });
+  }
+
+  async function waitForFrames(count) {
+    for (let index = 0; index < count; index += 1) {
+      await new Promise((resolve) => {
+        if (typeof requestAnimationFrame === "function") {
+          requestAnimationFrame(() => resolve());
+        } else {
+          setTimeout(resolve, 0);
+        }
+      });
+    }
   }
 
   function wait(milliseconds) {
