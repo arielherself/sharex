@@ -2,7 +2,6 @@
   let overlay;
   let overlayImage;
   let closeButton;
-  let screenshotDownload;
 
   function ensureOverlay() {
     if (overlay) {
@@ -22,17 +21,11 @@
     closeButton.textContent = "Close";
     closeButton.addEventListener("click", closeOverlay);
 
-    screenshotDownload = document.createElement("a");
-    screenshotDownload.className = "screenshot-download";
-    screenshotDownload.download = "post-card.png";
-    screenshotDownload.textContent = "Download image";
-    screenshotDownload.hidden = true;
-
     overlayImage = document.createElement("img");
     overlayImage.className = "photo-overlay-image";
     overlayImage.decoding = "async";
 
-    overlay.append(closeButton, overlayImage, screenshotDownload);
+    overlay.append(closeButton, overlayImage);
     overlay.addEventListener("click", (event) => {
       if (event.target === overlay) {
         closeOverlay();
@@ -47,8 +40,6 @@
     const thumbnail = link.querySelector("img");
     overlayImage.src = link.href;
     overlayImage.alt = thumbnail?.alt || "Post photo";
-    screenshotDownload.hidden = true;
-    screenshotDownload.removeAttribute("href");
     overlay.hidden = false;
     document.body.classList.add("photo-overlay-open");
     closeButton.focus();
@@ -69,8 +60,6 @@
       ensureOverlay();
       overlayImage.src = dataUrl;
       overlayImage.alt = "Post image card";
-      screenshotDownload.href = dataUrl;
-      screenshotDownload.hidden = false;
       overlay.hidden = false;
       document.body.classList.add("photo-overlay-open");
       closeButton.focus();
@@ -138,6 +127,7 @@
 
     clone.querySelectorAll(".video-download").forEach((element) => element.remove());
     await inlineCloneImages(clone);
+    await decodeCloneImages(clone);
   }
 
   async function inlineCloneImages(clone) {
@@ -167,6 +157,23 @@
       reader.onerror = reject;
       reader.readAsDataURL(blob);
     });
+  }
+
+  async function decodeCloneImages(clone) {
+    await Promise.all(
+      [...clone.querySelectorAll("img")].map((image) => {
+        if (!image.src) {
+          return Promise.resolve();
+        }
+        if (typeof image.decode === "function") {
+          return image.decode().catch(() => {});
+        }
+        return new Promise((resolve) => {
+          image.onload = () => resolve();
+          image.onerror = () => resolve();
+        });
+      })
+    );
   }
 
   function collectStyles() {
@@ -201,8 +208,6 @@
 
     overlay.hidden = true;
     overlayImage.removeAttribute("src");
-    screenshotDownload.hidden = true;
-    screenshotDownload.removeAttribute("href");
     document.body.classList.remove("photo-overlay-open");
   }
 

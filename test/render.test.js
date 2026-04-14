@@ -338,9 +338,12 @@ test("photo grid css preserves full image aspect ratios", () => {
   assert.match(script, /renderElementImage/);
   assert.match(script, /await prepareScreenshotClone\(clone\)/);
   assert.match(script, /blobToDataUrl/);
+  assert.match(script, /decodeCloneImages/);
+  assert.match(script, /image\.decode\(\)/);
   assert.match(script, /canvas\.toDataURL\("image\/png"\)/);
-  assert.match(styles, /\.screenshot-button,/);
-  assert.match(styles, /\.screenshot-download \{/);
+  assert.match(styles, /\.screenshot-button \{/);
+  assert.doesNotMatch(styles, /screenshot-download/);
+  assert.doesNotMatch(script, /screenshotDownload/);
   assert.match(script, /className = "photo-overlay"/);
   assert.match(styles, /\.video-download \{/);
   assert.doesNotMatch(styles, /\.photo-tile img \{[^}]*object-fit: cover;/s);

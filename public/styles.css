@@ -96,8 +96,7 @@ a {
   text-decoration: none;
 }
 
-.screenshot-button,
-.screenshot-download {
+.screenshot-button {
   border: 1px solid var(--line);
   border-radius: 8px;
   padding: 8px 12px;
@@ -326,14 +325,6 @@ a {
   font: inherit;
   font-weight: 800;
   cursor: pointer;
-}
-
-.screenshot-download {
-  position: fixed;
-  right: 96px;
-  bottom: 16px;
-  background: var(--modal-button-bg);
-  color: var(--modal-button-ink);
 }
 
 .photo-overlay-open {
