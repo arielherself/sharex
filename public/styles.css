@@ -692,6 +692,11 @@ a {
   line-height: 1.2;
 }
 
+.resolver-intro {
+  margin: 0 0 18px;
+  color: var(--ink-muted);
+}
+
 .resolver-form {
   display: grid;
   gap: 10px;

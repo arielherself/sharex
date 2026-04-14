@@ -1281,7 +1281,8 @@ function renderHome() {
 <body>
   <main class="page-shell home">
     <section class="post-card resolver">
-      <h1>Share a public post cleanly</h1>
+      <h1>ShareX</h1>
+      <p class="resolver-intro">Paste a public X post URL to open a clean, shareable page with readable text, media, and threaded context.</p>
       <form method="get" action="/go" class="resolver-form">
         <label for="post-url">Post URL or path</label>
         <div class="resolver-row">
