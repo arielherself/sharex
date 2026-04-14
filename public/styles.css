@@ -194,6 +194,10 @@ a {
   box-shadow: none;
 }
 
+[data-screenshot-render].post-card {
+  border-radius: 0;
+}
+
 .thread {
   display: grid;
   gap: 14px;
