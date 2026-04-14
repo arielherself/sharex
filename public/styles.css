@@ -425,7 +425,9 @@ a {
   border-radius: 50%;
   background: var(--panel);
   color: var(--accent-strong);
-  font: inherit;
+  font-family: inherit;
+  font-size: 1.35rem;
+  line-height: 1;
   font-weight: 800;
   cursor: pointer;
 }
