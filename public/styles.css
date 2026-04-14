@@ -164,13 +164,20 @@ a {
   right: max(20px, env(safe-area-inset-right));
   bottom: max(24px, env(safe-area-inset-bottom));
   z-index: 50;
+  width: 52px;
   min-width: 52px;
   height: 52px;
-  padding: 0 14px;
-  border-radius: 999px;
+  padding: 0;
+  border-radius: 50%;
   box-shadow: 0 10px 30px var(--shadow);
   background: var(--panel-soft);
   white-space: nowrap;
+}
+
+.screenshot-button-floating.is-rendering {
+  width: auto;
+  padding: 0 14px;
+  border-radius: 999px;
 }
 
 .screenshot-button-floating:hover {
