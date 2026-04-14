@@ -310,6 +310,71 @@ test("expands t.co links in raw text to their destination", async () => {
   }
 });
 
+test("hydrates article content from linked x.com/i/article URL when API omits article payload", async () => {
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async (url) => {
+    const parsed = new URL(url);
+    if (parsed.hostname === "t.co") {
+      return { url: "https://x.com/i/article/2043107321568489473" };
+    }
+
+    const statusId = parsed.pathname.split("/").at(-1);
+    if (statusId === "2043108032058450336") {
+      return new Response(
+        JSON.stringify({
+          code: 200,
+          tweet: baseTweet({
+            id: "2043108032058450336",
+            text: "https://x.com/i/article/2043107321568489473",
+            raw_text: { text: "https://t.co/AUSpCHSili" },
+            article: null,
+          }),
+        }),
+        {
+          status: 200,
+          headers: { "content-type": "application/json" },
+        }
+      );
+    }
+
+    if (statusId === "2043107321568489473") {
+      return new Response(
+        JSON.stringify({
+          code: 200,
+          tweet: baseTweet({
+            id: "2043107321568489473",
+            text: "",
+            article: {
+              title: "Recovered article",
+              preview_text: "Recovered preview",
+              content: { blocks: [], entityMap: [] },
+              media_entities: [],
+            },
+          }),
+        }),
+        {
+          status: 200,
+          headers: { "content-type": "application/json" },
+        }
+      );
+    }
+
+    return new Response(JSON.stringify({ code: 404 }), {
+      status: 404,
+      headers: { "content-type": "application/json" },
+    });
+  };
+
+  try {
+    const res = await renderRequest("/Evansantahp/status/2043108032058450336");
+    assert.equal(res.statusCode, 200);
+    assert.match(res.body, /Recovered article/);
+    assert.match(res.body, /article-body/);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
 test("renders @mentions in post text as x.com profile links", () => {
   const tweet = baseTweet({
     text: "hello @punk2898 and @another_user.",
