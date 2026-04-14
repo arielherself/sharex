@@ -221,7 +221,7 @@ test("renders poll, translation, community note, external media, and ordered med
   assert.match(html, /views/);
   assert.match(html, /https:\/\/media\.example\.test\/video\.mp4/);
   assert.doesNotMatch(html, /pbs\.twimg\.com|video\.twimg\.com/);
-  assert.doesNotMatch(html, /https:\/\/(?:[^/]+\.)?x\.com|https:\/\/(?:[^/]+\.)?twitter\.com/);
+  assert.doesNotMatch(html, /https:\/\/(?:[^/]+\.)?twitter\.com/);
 });
 
 test("webpage videos use the best variant while metadata keeps the small preview", () => {
@@ -280,6 +280,16 @@ test("keeps explicit non-media links in post text", () => {
   assert.match(html, /https:\/\/example\.com\/post/);
   assert.match(html, /https:\/\/t\.co\/abc123/);
   assert.doesNotMatch(html, /\[link\]/);
+});
+
+test("renders @mentions in post text as x.com profile links", () => {
+  const tweet = baseTweet({
+    text: "hello @punk2898 and @another_user.",
+  });
+
+  const html = renderTweet(normalizeTweet(tweet, ORIGIN));
+  assert.match(html, /href="https:\/\/x\.com\/punk2898"[^>]*>@punk2898<\/a>/);
+  assert.match(html, /href="https:\/\/x\.com\/another_user"[^>]*>@another_user<\/a>/);
 });
 
 test("photo grids stay three-column without placeholder classes", () => {
@@ -409,6 +419,8 @@ test("quoted posts expose author attribution for Instant View", () => {
   const html = renderTweet(normalizeTweet(tweet, ORIGIN));
   assert.match(html, /<hr class="quote-separator">/);
   assert.match(html, /class="quote-author"/);
-  assert.match(html, /Quoted Author/);
-  assert.match(html, /@quoted/);
+  assert.match(html, /<a href="https:\/\/x\.com\/quoted"[^>]*>Quoted Author<\/a>/);
+  assert.match(html, /<a href="https:\/\/x\.com\/quoted"[^>]*>@quoted<\/a>/);
+  assert.match(html, /<div class="display-name"><a href="https:\/\/x\.com\/tester"[^>]*>Tester<\/a><\/div>/);
+  assert.match(html, /<div class="handle"><a href="https:\/\/x\.com\/tester"[^>]*>@tester<\/a><\/div>/);
 });

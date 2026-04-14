@@ -166,13 +166,35 @@ function stripXUrls(value) {
 function renderText(value) {
   const text = stripXUrls(value);
   const urlPattern = /(https?:\/\/[^\s<]+)/gi;
+  const mentionPattern = /(^|[^A-Za-z0-9_])@([A-Za-z0-9_]{1,15})(?=$|[^A-Za-z0-9_])/g;
   const parts = [];
   let lastIndex = 0;
   let match;
 
+  function renderSegment(segment) {
+    const rendered = [];
+    let segmentLastIndex = 0;
+    let mentionMatch;
+
+    while ((mentionMatch = mentionPattern.exec(segment)) !== null) {
+      const [fullMatch, prefix, handle] = mentionMatch;
+      const mentionStart = mentionMatch.index + prefix.length;
+      const mentionEnd = mentionMatch.index + fullMatch.length;
+      rendered.push(escapeHtml(segment.slice(segmentLastIndex, mentionStart)));
+      rendered.push(
+        `<a href="https://x.com/${escapeAttr(handle)}" rel="nofollow noopener noreferrer" target="_blank">@${escapeHtml(handle)}</a>`
+      );
+      segmentLastIndex = mentionEnd;
+    }
+
+    rendered.push(escapeHtml(segment.slice(segmentLastIndex)));
+    mentionPattern.lastIndex = 0;
+    return rendered.join("");
+  }
+
   while ((match = urlPattern.exec(text)) !== null) {
     const [url] = match;
-    parts.push(escapeHtml(text.slice(lastIndex, match.index)));
+    parts.push(renderSegment(text.slice(lastIndex, match.index)));
     if (isBlockedFrontendUrl(url)) {
       parts.push('<span class="muted">[link]</span>');
     } else {
@@ -183,7 +205,7 @@ function renderText(value) {
     lastIndex = match.index + url.length;
   }
 
-  parts.push(escapeHtml(text.slice(lastIndex)));
+  parts.push(renderSegment(text.slice(lastIndex)));
   return parts.join("").replace(/\n/g, "<br>");
 }
 
@@ -998,6 +1020,9 @@ function renderTweet(tweet, options = {}) {
         tweet.author.name.slice(0, 1).toUpperCase() || "?"
       )}</span>`;
   const dateLabel = formatDate(tweet.createdTimestamp);
+  const authorProfileUrl = tweet.author.screenName
+    ? `https://x.com/${tweet.author.screenName}`
+    : "";
 
   return `
     <article
@@ -1006,14 +1031,14 @@ function renderTweet(tweet, options = {}) {
     >
       ${
         isQuote
-          ? `<p class="quote-author"><strong>${escapeHtml(tweet.author.name)}</strong> <span>@${escapeHtml(tweet.author.screenName)}</span></p>`
+          ? `<p class="quote-author"><strong>${authorProfileUrl ? `<a href="${escapeAttr(authorProfileUrl)}" rel="nofollow noopener noreferrer" target="_blank">${escapeHtml(tweet.author.name)}</a>` : escapeHtml(tweet.author.name)}</strong> <span>${authorProfileUrl ? `<a href="${escapeAttr(authorProfileUrl)}" rel="nofollow noopener noreferrer" target="_blank">@${escapeHtml(tweet.author.screenName)}</a>` : `@${escapeHtml(tweet.author.screenName)}`}</span></p>`
           : ""
       }
       <header class="post-header">
         ${avatar}
         <div class="identity">
-          <div class="display-name">${escapeHtml(tweet.author.name)}</div>
-          <div class="handle">@${escapeHtml(tweet.author.screenName)}</div>
+          <div class="display-name">${authorProfileUrl ? `<a href="${escapeAttr(authorProfileUrl)}" rel="nofollow noopener noreferrer" target="_blank">${escapeHtml(tweet.author.name)}</a>` : escapeHtml(tweet.author.name)}</div>
+          <div class="handle">${authorProfileUrl ? `<a href="${escapeAttr(authorProfileUrl)}" rel="nofollow noopener noreferrer" target="_blank">@${escapeHtml(tweet.author.screenName)}</a>` : `@${escapeHtml(tweet.author.screenName)}`}</div>
         </div>
       </header>
 
