@@ -159,6 +159,11 @@ a {
   cursor: pointer;
 }
 
+.theme-toggle {
+  min-width: 120px;
+}
+
+
 .screenshot-button:disabled {
   cursor: wait;
   opacity: 0.72;
