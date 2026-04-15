@@ -157,6 +157,16 @@ function compactText(value) {
     .trim();
 }
 
+function trimTextPreservingLineBreaks(value) {
+  return String(value || "")
+    .replace(/\r\n?/g, "\n")
+    .split("\n")
+    .map((line) => line.trim())
+    .join("\n")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+}
+
 function stripXUrls(value) {
   return String(value || "").trim().replace(
     /https?:\/\/(?:pbs|video)\.twimg\.com\/[^\s]+/gi,
@@ -746,8 +756,8 @@ function getReplyParentScreenName(tweet) {
 function normalizeTweet(tweet, origin, absoluteMedia = false, depth = 0) {
   const media = tweet.media || {};
   const tweetId = String(tweet.id || "");
-  const normalizedText = compactText(stripXUrls(tweet.text || ""));
-  const normalizedRawText = compactText(stripXUrls(tweet.raw_text?.text || ""));
+  const normalizedText = trimTextPreservingLineBreaks(stripXUrls(tweet.text || ""));
+  const normalizedRawText = trimTextPreservingLineBreaks(stripXUrls(tweet.raw_text?.text || ""));
   const article = tweet.article ? normalizeArticle(tweet.article, origin, absoluteMedia) : null;
   const displayText = normalizedText || normalizedRawText;
   const photos = (media.photos || []).map((photo) =>

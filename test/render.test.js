@@ -296,6 +296,16 @@ test("falls back to raw text when tweet text is empty", () => {
   assert.match(html, /https:\/\/t\.co\/abc123/);
 });
 
+test("preserves line breaks in post text", () => {
+  const tweet = baseTweet({
+    text: "first paragraph\n\nsecond paragraph\nthird line",
+  });
+
+  const html = renderTweet(normalizeTweet(tweet, ORIGIN));
+  assert.match(html, /first paragraph<br><br>second paragraph<br>third line/);
+  assert.doesNotMatch(html, /first paragraph second paragraph third line/);
+});
+
 test("expands t.co links in raw text to their destination", async () => {
   const originalFetch = globalThis.fetch;
   globalThis.fetch = async () => ({
