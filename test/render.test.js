@@ -315,12 +315,13 @@ test("hydrates article content from profile articles when status API omits artic
   globalThis.fetch = async (url) => {
     const parsed = new URL(url);
     if (parsed.hostname === "t.co") {
-      return { url: "https://x.com/i/article/2043107321568489473" };
+      return { url: "https://t.co/AUSpCHSili" };
     }
 
     if (
       parsed.hostname === "fxtwitter.com" &&
-      parsed.pathname === "/Evansantahp/article/2043108032058450336"
+      parsed.pathname === "/Evansantahp/status/2043108032058450336" &&
+      parsed.searchParams.get("iv") === "1"
     ) {
       return new Response(
         `<!doctype html><article>
@@ -413,6 +414,7 @@ test("hydrates article content from profile articles when status API omits artic
     assert.match(res.body, /Full article heading/);
     assert.match(res.body, /https:\/\/example\.com\/context/);
     assert.match(res.body, /article-body/);
+    assert.doesNotMatch(res.body, /article-preview/);
     assert.doesNotMatch(res.body, /class="post-text"/);
   } finally {
     globalThis.fetch = originalFetch;

@@ -275,24 +275,29 @@ async function hydrateArticleFromLinkedPost(tweet) {
     return tweet;
   }
 
-  const articleStatusId = extractXArticleStatusId(tweet.raw_text?.text || tweet.text || "");
-  if (!articleStatusId || String(tweet.id || "") === articleStatusId) {
+  const tweetText = tweet.raw_text?.text || tweet.text || "";
+  const articleStatusId = extractXArticleStatusId(tweetText);
+  if (articleStatusId && String(tweet.id || "") === articleStatusId) {
     return tweet;
   }
 
-  try {
-    const articleTweet = await fetchTweet("i", articleStatusId, {
-      allowArticleHydration: false,
-    });
-    if (articleTweet?.article) {
-      const article = await hydrateArticleContentFromInstantView(tweet, articleTweet.article);
-      return {
-        ...tweet,
-        article,
-      };
+  if (articleStatusId) {
+    try {
+      const articleTweet = await fetchTweet("i", articleStatusId, {
+        allowArticleHydration: false,
+      });
+      if (articleTweet?.article) {
+        const article = await hydrateArticleContentFromInstantView(tweet, articleTweet.article);
+        return {
+          ...tweet,
+          article,
+        };
+      }
+    } catch {
+      // Article URLs are not always fetchable as status URLs; try the profile articles API below.
     }
-  } catch {
-    // Article URLs are not always fetchable as status URLs; try the profile articles API below.
+  } else if (!isArticleOnlyText(tweetText)) {
+    return tweet;
   }
 
   const profileArticle = await fetchArticleFromProfileTimeline(tweet, articleStatusId);
@@ -384,9 +389,9 @@ async function hydrateArticleContentFromInstantView(tweet, article) {
   let html = "";
   try {
     const response = await fetch(
-      `https://fxtwitter.com/${encodeURIComponent(screenName)}/article/${encodeURIComponent(
+      `https://fxtwitter.com/${encodeURIComponent(screenName)}/status/${encodeURIComponent(
         tweetId
-      )}`,
+      )}?iv=1`,
       {
         headers: {
           Accept: "text/html",
@@ -1309,13 +1314,14 @@ function renderArticle(article) {
   const blocks = article.content.blocks
     .map((block) => renderArticleBlock(article, block))
     .join("");
+  const hasBody = Boolean(blocks.trim());
 
   return `
     <section class="article-body" aria-label="Article">
       <header class="article-header">
         <p class="eyebrow">Article</p>
         <h1>${escapeHtml(article.title)}</h1>
-        ${article.previewText ? `<p class="article-preview">${renderText(article.previewText)}</p>` : ""}
+        ${article.previewText && !hasBody ? `<p class="article-preview">${renderText(article.previewText)}</p>` : ""}
       </header>
       ${
         article.cover?.src
