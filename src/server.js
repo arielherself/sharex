@@ -1546,7 +1546,7 @@ function renderMeta(tweet, origin, pathValue) {
   const authorName = tweet.author?.name || "Unknown";
   const title = getPageTitle(tweet);
   const description =
-    compactText(stripXUrls(tweet.article?.preview_text || tweet.text)) ||
+    trimTextPreservingLineBreaks(stripXUrls(tweet.article?.preview_text || tweet.text)) ||
     `Post by ${authorName || screenName}`;
   const absoluteTweet = `${origin}${pathValue}`;
   const previewImage = getPreviewImage(tweet, origin);
