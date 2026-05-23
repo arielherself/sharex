@@ -1568,7 +1568,7 @@ function renderMeta(tweet, origin, pathValue) {
     <meta property="og:image:width" content="${escapeAttr(previewImage.width)}">
     <meta property="og:image:height" content="${escapeAttr(previewImage.height)}">
     <meta property="og:image:alt" content="${escapeAttr(description)}">
-    <meta name="twitter:card" content="${video ? "player" : "summary_large_image"}">
+    <meta name="twitter:card" content="${video ? "player" : previewImage.small ? "summary" : "summary_large_image"}">
     <meta name="twitter:title" content="${escapeAttr(title)}">
     <meta name="twitter:description" content="${escapeAttr(description)}">
     <meta name="twitter:image" content="${escapeAttr(previewImage.url)}">
@@ -1593,6 +1593,18 @@ function getPreviewImage(tweet, origin) {
       width: media.width || 1200,
       height: media.height || 630,
       type: media.contentType || contentTypeForImageUrl(media.url),
+      small: false,
+    };
+  }
+
+  const avatarUrl = tweet.author?.avatar_url;
+  if (avatarUrl) {
+    return {
+      url: mediaUrl(origin, avatarUrl, true),
+      width: 400,
+      height: 400,
+      type: contentTypeForImageUrl(avatarUrl),
+      small: true,
     };
   }
 
@@ -1601,6 +1613,7 @@ function getPreviewImage(tweet, origin) {
     width: 1200,
     height: 630,
     type: "image/png",
+    small: false,
   };
 }
 
