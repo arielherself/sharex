@@ -431,6 +431,63 @@ test("hydrates article content from profile articles when status API omits artic
   }
 });
 
+test("hydrates truncated post text from FxTwitter Open Graph description", async () => {
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async (url) => {
+    const parsed = new URL(url);
+
+    if (parsed.hostname === "fxtwitter.com") {
+      return new Response(
+        `<!doctype html><html><head>
+          <meta property="og:description" content="短正文<br><br>补出来的长正文" />
+        </head></html>`,
+        {
+          status: 200,
+          headers: { "content-type": "text/html" },
+        }
+      );
+    }
+
+    return new Response(
+      JSON.stringify({
+        code: 200,
+        tweet: baseTweet({
+          id: "2068569258951573636",
+          text: "短正文",
+          raw_text: { text: "短正文 https://t.co/media" },
+          author: {
+            name: "Long Writer",
+            screen_name: "longwriter",
+            avatar_url: "https://pbs.twimg.com/profile_images/avatar.jpg",
+          },
+          media: {
+            photos: [
+              {
+                type: "photo",
+                url: "https://pbs.twimg.com/media/photo.jpg",
+                width: 100,
+                height: 100,
+              },
+            ],
+          },
+        }),
+      }),
+      {
+        status: 200,
+        headers: { "content-type": "application/json" },
+      }
+    );
+  };
+
+  try {
+    const res = await renderRequest("/longwriter/status/2068569258951573636");
+    assert.equal(res.statusCode, 200);
+    assert.match(res.body, /短正文<br><br>补出来的长正文/);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
 test("renders @mentions in post text as x.com profile links", () => {
   const tweet = baseTweet({
     text: "hello @punk2898 and @another_user.",

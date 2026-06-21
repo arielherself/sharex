@@ -273,11 +273,73 @@ async function fetchTweet(screenName, statusId, options = {}) {
 
   payload.tweet.raw_text = payload.tweet.raw_text || {};
   payload.tweet.raw_text.text = await expandShortUrlsInText(payload.tweet.raw_text.text || "");
+  payload.tweet = await hydrateTweetTextFromEmbedHtml(payload.tweet, screenName, statusId);
   if (allowArticleHydration) {
     payload.tweet = await hydrateArticleFromLinkedPost(payload.tweet);
   }
 
   return payload.tweet;
+}
+
+async function hydrateTweetTextFromEmbedHtml(tweet, screenName, statusId) {
+  const currentText = trimTextPreservingLineBreaks(stripXUrls(tweet?.text || ""));
+  let html = "";
+
+  try {
+    const response = await fetch(
+      `https://fxtwitter.com/${encodeURIComponent(screenName)}/status/${encodeURIComponent(statusId)}`,
+      {
+        headers: {
+          Accept: "text/html",
+          "User-Agent": "TelegramBot (like TwitterBot)",
+        },
+      }
+    );
+    if (!response.ok) {
+      return tweet;
+    }
+    html = await response.text();
+  } catch {
+    return tweet;
+  }
+
+  const embeddedText = extractEmbedDescriptionText(html);
+  if (compactText(embeddedText).length <= compactText(currentText).length) {
+    return tweet;
+  }
+
+  return {
+    ...tweet,
+    text: embeddedText,
+  };
+}
+
+function extractEmbedDescriptionText(html) {
+  const content = extractMetaContent(html, "og:description") || extractMetaContent(html, "twitter:description");
+  return trimTextPreservingLineBreaks(
+    decodeHtml(content)
+      .replace(/<br\s*\/?>/gi, "\n")
+      .replace(/<[^>]+>/g, "")
+  );
+}
+
+function extractMetaContent(html, propertyName) {
+  const escapedName = escapeRegExp(propertyName);
+  const source = String(html || "");
+  const propertyBeforeContent = new RegExp(
+    `<meta\\b[\\s\\S]*?(?:property|name)=["']${escapedName}["'][\\s\\S]*?content=(?:"([^"]*)"|'([^']*)'|([^\\s/]+))[\\s\\S]*?>`,
+    "i"
+  );
+  const contentBeforeProperty = new RegExp(
+    `<meta\\b[\\s\\S]*?content=(?:"([^"]*)"|'([^']*)'|([^\\s/]+))[\\s\\S]*?(?:property|name)=["']${escapedName}["'][\\s\\S]*?>`,
+    "i"
+  );
+  const match = source.match(propertyBeforeContent) || source.match(contentBeforeProperty);
+  return match ? match[1] || match[2] || match[3] || "" : "";
+}
+
+function escapeRegExp(value) {
+  return String(value).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
 async function hydrateArticleFromLinkedPost(tweet) {
